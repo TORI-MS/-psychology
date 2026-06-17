@@ -4,23 +4,8 @@ import openai
 # 1. 웹 페이지 기본 설정
 st.set_page_config(page_title="심리학 논문 기반 AI 상담소", page_icon="🧠", layout="centered")
 
-st.markdown("""
-    <style>
-    .main { background-color: #fcfcfc; }
-    h1 { color: #2E4053; font-weight: 700; }
-    .stTextArea textarea { font-size: 15px; }
-    </style>
-""", unsafe_allow_html=True)
-
-# 2. 사이드바 구성
+# 2. 사이드바 구성 (이론 선택만 남김)
 st.sidebar.title("🛠️ 상담 엔진 설정")
-st.sidebar.markdown("---")
-groq_api_key = st.sidebar.text_input(
-    "Groq API Key", 
-    type="password", 
-    help="Groq Cloud에서 발급받은 gsk_... 형태의 무료 키를 입력하세요."
-)
-
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 기반 심리학 논문 선택")
 therapy_mode = st.sidebar.selectbox(
@@ -52,23 +37,20 @@ st.subheader("📝 오늘의 마음 기록")
 user_input = st.text_area("상담받고 싶은 고민이나 마음 상태를 상세히 적어주세요:", placeholder="예시: 이번 팀 프로젝트 발표를 완전히 망쳤어요...", height=150)
 submit_button = st.button("AI 심리 상담사에게 털어놓기 💬")
 
-# 5. 답변 처리 (무료 OpenAI 호환 엔지니어링)
+# 5. 답변 처리 (Streamlit 금고에서 키를 가져옴)
 if submit_button:
-    if not groq_api_key:
-        st.error("⚠️ 시연을 위해 사이드바에 Groq API Key를 먼저 입력해주세요!")
-    elif not user_input.strip():
+    if not user_input.strip():
         st.warning("⚠️ 고민 내용을 입력해주세요.")
     else:
         with st.spinner(f"💡 AI가 {therapy_mode} 논문을 기반으로 분석 중입니다..."):
             try:
-                # OpenAI 규격을 그대로 쓰되, 주소(base_url)만 무료 고속 서버로 우회합니다.
-                client = openai.OpenAI(
-                    base_url="https://api.groq.com/openai/v1",
-                    api_key=groq_api_key
-                )
+                # [중요] Streamlit 시스템 대시보드에 적어둘 키를 자동으로 불러옵니다.
+                api_key_from_vault = st.secrets["OPENAI_API_KEY"]
+                
+                client = openai.OpenAI(api_key=api_key_from_vault)
                 
                 response = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile", # 오픈소스 중 최고 성능을 자랑하는 Meta의 대형 모델
+                    model="gpt-4o-mini", # 비용 효율적이고 쿼터 에러가 덜 나는 고속 모델로 변경
                     messages=[
                         {"role": "system", "content": get_system_prompt(therapy_mode)},
                         {"role": "user", "content": user_input}
@@ -83,4 +65,4 @@ if submit_button:
                 st.success("✅ 분석 및 상담이 완료되었습니다.")
                 
             except Exception as e:
-                st.error(f"❌ 에러가 발생했습니다: {e}")
+                st.error(f"❌ 에러가 발생했습니다: {e}\n관리자에게 문의하거나 Secrets 설정을 확인해주세요.")
