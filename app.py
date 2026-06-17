@@ -31,7 +31,7 @@ st.set_page_config(
 
 
 # =========================================================
-# 1. 따뜻한 톤의 커스텀 CSS (글씨 차이 완벽 해결 버젼)
+# 1. 따뜻한 톤의 커스텀 CSS (글씨 선명도 완벽 보완)
 # =========================================================
 def inject_custom_css() -> None:
     st.markdown(
@@ -48,12 +48,12 @@ def inject_custom_css() -> None:
             padding: 1.2rem 0 0.4rem 0;
         }
         .main-title h1 {
-            color: #4A3B2C; /* 조금 더 진하게 하여 가독성 확보 */
+            color: #382F2E; /* 색상을 더 어둡게 하여 글씨 가독성 확보 */
             font-weight: 800;
             margin-bottom: 0.2rem;
         }
         .main-title p {
-            color: #8A725D; /* 글씨 흐릿한 문제 해결 */
+            color: #70605A; /* 연해서 안 보이던 현상 수정 */
             font-size: 0.95rem;
             margin-top: 0;
         }
@@ -66,27 +66,27 @@ def inject_custom_css() -> None:
             padding: 1.2rem 1.4rem;
             margin-bottom: 1rem;
             box-shadow: 0 2px 8px rgba(160, 130, 100, 0.08);
-            color: #4A3B2C; /* 글씨색 명시 */
+            color: #382F2E; /* 내부 글씨색 선명하게 고정 */
         }
 
-        /* AI 답변 박스 (다운된 세이지 그린 틴트 + 완전 선명한 글씨색) */
+        /* AI 답변 박스 (다운된 세이지 그린 틴트 적용 + 글씨색 극대화) */
         .answer-box {
             background-color: #EBF0EC; 
             border: 1px solid #D1DDD5;
             border-radius: 18px;
             padding: 1.5rem 1.6rem;
             line-height: 1.75;
-            color: #1C2B22; /* 흑백 대비 확실하게 어두운 색으로 고정 */
+            color: #1C2B22; /* 확실하게 어두운 초록 브라운으로 고정하여 흑백 대비 해결 */
             font-size: 1.02rem;
         }
 
-        /* 입력창 내부 글씨가 배경에 묻히지 않도록 강제 지정 */
+        /* 입력창 내부 글씨가 배경에 묻히지 않도록 선명하게 지정 */
         .stTextArea textarea {
-            color: #4A3B2C;
+            color: #382F2E;
             background-color: #FFFFFF;
         }
 
-        /* 버튼 스타일 - 세이지 그린 */
+        /* 버튼 스타일 - 마음의 안정을 주는 세이지 그린 */
         div.stButton > button {
             background-color: #63756B;
             color: #FFFFFF;
@@ -110,7 +110,7 @@ def inject_custom_css() -> None:
 
         /* 안내 캡션 */
         .small-note {
-            color: #7A6C66; /* 선명도 보완 */
+            color: #7A6C66; /* 선명도 개선 */
             font-size: 0.82rem;
         }
         </style>
@@ -123,31 +123,31 @@ inject_custom_css()
 
 
 # =========================================================
-# 2. 모델 / 상담 이론 메타데이터 정의 (원래 텍스트 및 구조 완벽 복구)
+# 2. 모델 / 상담 이론 메타데이터 정의 (원본 Key값 100% 복구)
 # =========================================================
 MODEL_OPTIONS = {
-    "깊고 명쾌한 대화 · 이성적 분석가": {
+    "Llama-3.1-8B · 이성적·논리적 분석 스타일": {
         "id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "desc": "복잡한 생각의 타래를 차근차근 짚어가며, 현명한 관점을 찾도록 이성적으로 돕습니다.",
+        "desc": "사실과 논리를 차근차근 짚어가며 분석적으로 설명해주는 스타일이에요.",
     },
-    "넓고 유연한 대화 · 공감형 조언자": {
+    "Qwen-2.5-72B · 상황 파악이 빠른 다재다능 스타일": {
         "id": "Qwen/Qwen2.5-72B-Instruct",
-        "desc": "마음의 전체적인 맥락을 영리하게 파악하고, 여러 갈래의 따뜻한 시선을 열어줍니다.",
+        "desc": "맥락을 빠르게 파악하고 다양한 관점에서 유연하게 답해주는 스타일이에요.",
     },
-    "다정하고 포근한 대화 · 이야기 친구": {
+    "Gemma-2-9B · 부드럽고 친근한 대화 스타일": {
         "id": "google/gemma-2-9b-it",
-        "desc": "가까운 친구처럼 부드러운 말투로 곁에 머물며, 부담 없이 이야기를 들어줍니다.",
+        "desc": "다정하고 친근한 말투로 부담 없이 대화하듯 답해주는 스타일이에요.",
     },
 }
 
 THEORY_OPTIONS = {
-    "생각의 틀을 함께 짚어보는 대화 (인지행동치료)": "CBT",
-    "있는 그대로 마음을 비춰주는 대화 (인간중심치료)": "PCT",
+    "옵션 A · 아론 벡의 인지행동치료 (CBT)": "CBT",
+    "옵션 B · 칼 로저스의 인간중심치료 (PCT)": "PCT",
 }
 
 THEORY_DESCRIPTIONS = {
-    "CBT": "나도 모르게 스스로를 괴롭히던 생각의 오해나 치우침을 살펴보고, 마음의 균형을 찾도록 이끕니다.",
-    "PCT": "어떤 판단도 하지 않고, 당신이 느끼는 서러움이나 아픔을 온전히 존중하며 곁을 지킵니다.",
+    "CBT": "생각의 왜곡(인지왜곡)을 함께 짚어보고, 더 균형 잡힌 시각을 찾아가도록 돕는 접근이에요.",
+    "PCT": "옳고 그름을 판단하지 않고, 있는 그대로의 감정을 존중하며 곁에서 함께 들어주는 접근이에요.",
 }
 
 
@@ -155,25 +155,26 @@ def build_system_prompt(theory_key: str) -> str:
     """선택된 상담 이론에 따라 시스템 프롬프트를 생성합니다."""
     if theory_key == "CBT":
         return (
-            "너는 따뜻하고 깊이 있는 심리 상담사야. 아론 벡의 인지행동치료(CBT) 관점에서 대화해줘. "
-            "내담자의 사연에서 스스로를 힘들게 만드는 생각의 함정(흑백논리, 파국화, 과잉일반화 등)을 세심히 살피되, "
-            "기계적인 진단처럼 말하지 말고 대화하듯 풀어줘. "
-            "1단계 [마음 알아채기 및 공감], 2단계 [생각의 타래 짚어보기], 3단계 [작은 변화를 위한 조심스러운 제안] "
-            "순서로 답변해줘. 각 단계는 명확한 구절로 나누어 한국어로 다정하면서도 신뢰감 있게 작성해줘. "
-            "의학적 진단은 피하고, 깊은 치유가 필요할 땐 조율된 어조로 전문가 상담을 권해줘."
+            "너는 아론 벡의 인지행동치료(CBT) 전문 심리 상담사야. "
+            "내담자의 사연에서 인지적 왜곡(흑백논리, 파국화, 과잉일반화 등)을 포착하고, "
+            "1단계 [공감과 수용], 2단계 [심리학적 분석], 3단계 [소크라테스식 질문] "
+            "순서로 답변해줘. 각 단계는 명확한 제목과 함께 한국어로 따뜻하지만 "
+            "전문적인 어조로 작성해줘. 의학적 진단이나 약물 처방은 하지 말고, "
+            "필요한 경우 전문가의 직접적인 상담을 권유해줘."
         )
     else:  # PCT
         return (
-            "너는 칼 로저스의 인간중심치료를 바탕으로 소통하는 따뜻한 상담사야. "
-            "무조건적인 존중과 깊은 경청이 핵심이야. 섣부른 해결책이나 충고는 내려놓고, 오직 내담자의 마음에만 집중해줘. "
-            "1단계 [온전한 경청과 마음 비추기], 2단계 [따스한 격려와 지지], 3단계 [내면의 힘 깨우기] "
-            "순서로 답변해줘. 각 단계는 부드럽고 다정한 한국어로 작성하고, 결코 내담자를 평가하거나 판단하지 말아줘. "
-            "더 깊은 위로와 치유가 필요할 땐 전문가의 손길을 조심스럽게 권유해줘."
+            "너는 칼 로저스의 인간중심치료 전문 심리 상담사야. "
+            "무조건적 존중과 공감적 경청이 핵심이야. 절대 섣부른 조언이나 "
+            "해결책을 지시하지 말고, 1단계 [감정 반영 및 경청], 2단계 [존중과 격려], "
+            "3단계 [내면 탐색 유도] 순서로 답변해줘. 각 단계는 명확한 제목과 함께 "
+            "한국어로 부드럽고 따뜻한 어조로 작성해줘. 평가하거나 판단하는 표현은 "
+            "절대 사용하지 말고, 필요한 경우 전문가의 직접적인 상담을 권유해줘."
         )
 
 
 # =========================================================
-# 3. 인증 토큰 처리 (원래 로직 원상복구)
+# 3. 인증 토큰 처리 (원본 유지)
 # =========================================================
 def get_hidden_token() -> str | None:
     try:
@@ -200,59 +201,68 @@ def get_client(_token: str | None, provider: str = "auto") -> InferenceClient:
 
 
 # =========================================================
-# 4. 사이드바 UI
+# 4. 사이드바 UI (원본 유지)
 # =========================================================
 with st.sidebar:
-    st.markdown("### ⚙️ 상담실 문 열기")
-    st.caption("편안한 대화를 위해 마음에 맞는 방식을 골라주세요.")
+    st.markdown("### ⚙️ 상담 설정")
+    st.caption("아래 옵션을 선택한 뒤, 메인 화면에서 고민을 적어주세요.")
 
-    st.markdown("#### ✉️ 어떤 결의 상담사와 이야기하고 싶나요?")
+    st.markdown("#### 🤖 AI 상담사 엔진 선택")
     selected_model_label = st.selectbox(
-        "목소리 톤 고르기",
+        "상담을 진행할 AI 모델을 골라주세요.",
         options=list(MODEL_OPTIONS.keys()),
         index=2,
     )
     selected_model_id = MODEL_OPTIONS[selected_model_label]["id"]
-    st.caption(f"✨ {MODEL_OPTIONS[selected_model_label]['desc']}")
+    st.caption(f"💡 {MODEL_OPTIONS[selected_model_label]['desc']}")
 
     st.markdown("---")
 
-    st.markdown("#### 📚 어떤 대화 방식으로 마음을 풀고 싶나요?")
+    st.markdown("#### 📚 상담 이론 선택")
     selected_theory_label = st.selectbox(
-        "상담 접근방식 고르기",
+        "어떤 심리상담 이론으로 상담받고 싶으신가요?",
         options=list(THEORY_OPTIONS.keys()),
         index=0,
     )
     selected_theory_key = THEORY_OPTIONS[selected_theory_label]
-    st.caption(f"✨ {THEORY_DESCRIPTIONS[selected_theory_key]}")
+    st.caption(f"💡 {THEORY_DESCRIPTIONS[selected_theory_key]}")
 
     st.markdown("---")
     st.markdown(
-        '<p class="small-note">🔒 이곳에서의 대화는 어디에도 남지 않으니 안심하세요.<br>'
-        "본 공간은 마음을 돌보는 보조 도구입니다. 극심한 마음의 고통이나 "
-        "위기 상황에는 꼭 전문기관(자살예방상담전화 1393 등)의 따뜻한 도움을 받아보시기를 권합니다.</p>",
+        '<p class="small-note">🔒 별도의 회원가입이나 API Key 입력이 필요 없습니다.<br>'
+        "본 서비스는 전문적인 의료/심리 치료를 대체하지 않으며, "
+        "긴급한 위기 상황에는 반드시 전문기관(자살예방상담전화 1393 등)에 "
+        "연락해주세요.</p>",
         unsafe_allow_html=True,
     )
 
     with st.expander("🛠️ 서버 연결 상태 (개발자 확인용)"):
         if _TOKEN_IS_SET:
             st.success("HF_TOKEN이 정상적으로 인식되었습니다.")
+            st.caption(
+                "그래도 'model_not_supported' 오류가 난다면, "
+                "huggingface.co/settings/inference-providers 페이지에서 "
+                "Featherless AI / Novita / Together 등 Provider가 "
+                "활성화되어 있는지 확인해주세요."
+            )
         else:
             st.error(
                 "HF_TOKEN을 찾지 못했습니다.\n\n"
                 "Streamlit Cloud에 배포한 경우: 앱 관리 화면 → Settings → "
-                "Secrets 탭에 HF_TOKEN을 등록한 뒤 앱을 Reboot 해주세요."
+                "Secrets 탭에 HF_TOKEN을 등록한 뒤 앱을 Reboot 해주세요.\n\n"
+                "로컬에서 실행한 경우: app.py와 같은 폴더의 .streamlit/secrets.toml "
+                "파일에 HF_TOKEN을 넣은 뒤, 터미널을 완전히 재시작해주세요."
             )
 
 
 # =========================================================
-# 5. 메인 화면 UI
+# 5. 메인 화면 UI (원본 유지)
 # =========================================================
 st.markdown(
     """
     <div class="main-title">
         <h1>🌿 마음챙김 AI 상담실</h1>
-        <p>복잡한 가입이나 절차 없이 — 오롯이 당신만을 위한 대화 공간입니다.</p>
+        <p>가입도, 인증도 필요 없이 — 지금 떠오르는 고민을 편하게 적어보세요.</p>
     </div>
     """,
     unsafe_allow_html=True,
@@ -261,15 +271,15 @@ st.markdown(
 st.markdown(
     f"""
     <div class="soft-card">
-        • <b>상담사 성향</b> : {selected_model_label.split(' · ')[0]}<br>
-        • <b>대화의 흐름</b> : {selected_theory_label.split(' (')[0]}
+        <b>현재 선택된 상담사</b> · {selected_model_label.split(' · ')[0]}<br>
+        <b>현재 상담 접근법</b> · {selected_theory_label.split(' · ')[1]}
     </div>
     """,
     unsafe_allow_html=True,
 )
 
 user_input = st.text_area(
-    label="지금 마음 한구석을 무겁게 만드는 고민이 있다면, 편하게 털어놓아 보세요. ✍️",
+    label="지금 어떤 마음이신가요? 편하게 적어주세요. ✍️",
     placeholder=(
         "예) 요즘 회사에서 작은 실수를 했는데, 다들 나를 무능하다고 생각할 것 같아서 "
         "잠도 잘 못 자고 계속 그 생각만 나요..."
@@ -279,16 +289,16 @@ user_input = st.text_area(
 
 col_btn, col_clear = st.columns([3, 1])
 with col_btn:
-    submit_clicked = st.button("내 마음 전하기 💬", use_container_width=True)
+    submit_clicked = st.button("AI 심리 상담사에게 털어놓기 💬", use_container_width=True)
 with col_clear:
-    clear_clicked = st.button("처음부터 다시 쓰기", use_container_width=True)
+    clear_clicked = st.button("초기화", use_container_width=True)
 
 if clear_clicked:
     st.rerun()
 
 
 # =========================================================
-# 6. 원래 완벽하게 돌아가던 모델 호출 및 결과 출력 구조 (복구 완료)
+# 6. 모델 호출 및 결과 출력 (원본 완전 동기화)
 # =========================================================
 def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
     if not _TOKEN_IS_SET:
@@ -355,14 +365,14 @@ if submit_clicked:
     cleaned_text = (user_input or "").strip()
 
     if not cleaned_text:
-        st.warning("⚠️ 한두 구절이라도 마음을 적어주셔야 조심스레 답변을 건넬 수 있어요.")
+        st.warning("⚠️ 먼저 고민을 적어주셔야 상담사가 답변을 드릴 수 있어요.")
     else:
         system_prompt = build_system_prompt(selected_theory_key)
 
-        st.markdown("#### 💌 당신을 향한 따뜻한 답신")
+        st.markdown("#### 💌 AI 상담사의 답변")
         answer_placeholder = st.empty()
         answer_placeholder.markdown(
-            '<div class="answer-box">이야기를 조용히 읽으며 생각을 정리하고 있어요...</div>',
+            '<div class="answer-box">상담사가 답변을 준비하고 있어요...</div>',
             unsafe_allow_html=True,
         )
 
@@ -370,7 +380,7 @@ if submit_clicked:
         error_occurred = False
 
         try:
-            with st.spinner("마음을 가만히 들여다보는 중입니다..."):
+            with st.spinner(f"🌿 '{selected_model_label.split(' · ')[0]}' 상담사가 마음을 읽고 있어요..."):
                 first_chunk_received = False
                 for delta in call_counseling_model(
                     model_id=selected_model_id,
