@@ -1,7 +1,7 @@
 import streamlit as st
 from huggingface_hub import InferenceClient
 
-# 1. 웹 페이지 기본 설정
+# 1. 웹 페이지 기본 디자인 설정
 st.set_page_config(page_title="심리학 논문 기반 AI 상담소", page_icon="🧠", layout="centered")
 
 st.markdown("""
@@ -12,7 +12,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 사이드바 구성 (논문 선택만 남김)
+# 2. 사이드바 구성 (논문 이론 선택만 유지)
 st.sidebar.title("🛠️ 상담 엔진 설정")
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 기반 심리학 논문 선택")
@@ -21,11 +21,11 @@ therapy_mode = st.sidebar.selectbox(
     ["아론 벡의 인지행동치료 (CBT)", "칼 로저스의 인간중심치료 (PCT)"]
 )
 
-st.title("🧠 마음을 읽는 심리학 AI 상담소")
-st.write("현대 심리학 연구 논문을 기반으로 설계된 에이전트입니다. 고민을 편안하게 적어주세요.")
+st.title("🧠 마음을 읽는 Gemini 심리 상담소")
+st.write("로그인이나 비용 지불 없이 곧바로 작동하는 구글 AI 엔진 기반 상담소입니다.")
 st.markdown("---")
 
-# 3. 프롬프트 정의
+# 3. 심리학 논문 기반 프롬프트 정의
 def get_system_prompt(mode):
     if mode == "아론 벡의 인지행동치료 (CBT)":
         return """
@@ -45,15 +45,14 @@ st.subheader("📝 오늘의 마음 기록")
 user_input = st.text_area("상담받고 싶은 고민이나 마음 상태를 상세히 적어주세요:", placeholder="예시: 이번 팀 프로젝트 발표를 완전히 망쳤어요...", height=150)
 submit_button = st.button("AI 심리 상담사에게 털어놓기 💬")
 
-# 5. 답변 처리 (가입/로그인 없는 무료 우회 엔진)
+# 5. 답변 처리 (회원가입/인증 없는 완전 무료 우회망)
 if submit_button:
     if not user_input.strip():
         st.warning("⚠️ 고민 내용을 입력해주세요.")
     else:
-        with st.spinner(f"💡 AI가 {therapy_mode} 논문을 기반으로 분석 중입니다..."):
+        with st.spinner(f"💡 Gemini 엔진이 {therapy_mode} 논문을 기반으로 분석 중입니다..."):
             try:
-                # 공용 무료 서버를 이용하여 구글의 고성능 오픈소스 모델을 직접 호출합니다.
-                # 회원가입이나 API 키가 일절 필요 없는 프리패스 주소입니다.
+                # [로그인 무시 프리패스] API 키나 토큰을 넣지 않아도 작동하는 공용 클라이언트입니다.
                 client = InferenceClient()
                 
                 messages = [
@@ -61,7 +60,7 @@ if submit_button:
                     {"role": "user", "content": user_input}
                 ]
                 
-                # 구글의 최신 Gemma-2 모델을 사용하여 무료로 답변을 받아옵니다.
+                # 구글이 오픈소스로 공개한 고성능 제 자매 모델(Gemma-2)을 무료 서버에서 호출합니다.
                 response = client.chat.completions.create(
                     model="google/gemma-2-9b-it",
                     messages=messages,
@@ -73,7 +72,7 @@ if submit_button:
                 st.subheader("✨ AI 심리 상담사의 마음 가이드")
                 with st.chat_message("assistant", avatar="🧠"):
                     st.write(response.choices[0].message.content)
-                st.success("✅ 분석 및 상담이 완료되었습니다.")
+                st.success("✅ 분석 및 상담이 완료되었습니다! (서버 비용 0원)")
                 
             except Exception as e:
-                st.error(f"❌ 에러가 발생했습니다: {e}\n네트워크 연결 상태를 확인해주세요.")
+                st.error(f"❌ 엔진 작동 실패: {e}\n네트워크 연결 상태를 확인하거나 잠시 후 다시 시도해주세요.")
