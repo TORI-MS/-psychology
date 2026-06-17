@@ -43,9 +43,9 @@ def inject_custom_css() -> None:
         }
 
         /* ---------------------------------------------------------
-           [추가] 드래그 블록 지정 및 포커스 시 파란색 제거
+           [수정] 드래그 블록 지정 및 포커스 시 글자 안 보임 문제 해결
         --------------------------------------------------------- */
-        /* 사용자가 글자를 마우스로 드래그(블록 지정)할 때 파란색 방지 */
+        /* 사용자가 글자를 마우스로 드래그(블록 지정)할 때 투명해지거나 흰색으로 날아가는 현상 방지 */
         ::selection {
             background-color: #DCD4C9 !important; /* 부드러운 샌드 베이지 */
             color: #2F2A25 !important;            /* 깊은 흑갈색 */
@@ -59,6 +59,20 @@ def inject_custom_css() -> None:
         input:focus, select:focus, textarea:focus, div[role="combobox"]:focus-within {
             border-color: #4A6653 !important;     /* 마음을 편안하게 하는 포레스트 그린 */
             box-shadow: 0 0 0 1px #4A6653 !important;
+        }
+
+        /* 사이드바 글자 강제 시인성 확보 (흰색으로 날아가는 현상 전면 차단) */
+        section[data-testid="stSidebar"] h3, 
+        section[data-testid="stSidebar"] h4, 
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] label {
+            color: #3A2F28 !important;            /* 선명한 흑갈색으로 고정 */
+        }
+
+        section[data-testid="stSidebar"] .stCaption,
+        section[data-testid="stSidebar"] .small-note,
+        section[data-testid="stSidebar"] div[data-testid="stMarkdownContainer"] p {
+            color: #594E44 !important;            /* 캡션이나 작은 글씨도 읽기 쉬운 다크 브라운 */
         }
         /* --------------------------------------------------------- */
 
