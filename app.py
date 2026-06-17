@@ -1,7 +1,7 @@
 import streamlit as st
-import os
+from huggingface_hub import InferenceClient
 
-# 1. 웹 페이지 설정
+# 1. 웹 페이지 기본 설정
 st.set_page_config(page_title="심리학 논문 기반 AI 상담소", page_icon="🧠", layout="centered")
 
 st.markdown("""
@@ -21,17 +21,11 @@ therapy_mode = st.sidebar.selectbox(
     ["아론 벡의 인지행동치료 (CBT)", "칼 로저스의 인간중심치료 (PCT)"]
 )
 
-# =======================================================
-# ⚠️ [여기만 수정하세요] 아까 개인 계정으로 받은 구글 API 키를 넣어주세요!
-# 예: GEMINI_API_KEY = "AIzaSyAz..."
-GEMINI_API_KEY = "AQ.Ab8RN6KBUQduUQaE2gl90ybjwb3Qah1SNzYMuDA2PVwuQOsKsg"
-# =======================================================
-
-st.title("🧠 마음을 읽는 Gemini 심리 상담소")
-st.write("구글의 최신 Gemini 모델과 심리학 연구 논문을 결합한 에이전트입니다. 비용 걱정 없이 편안하게 이용하세요.")
+st.title("🧠 마음을 읽는 심리학 AI 상담소")
+st.write("현대 심리학 연구 논문을 기반으로 설계된 에이전트입니다. 고민을 편안하게 적어주세요.")
 st.markdown("---")
 
-# 3. 심리학 논문 기반 프롬프트 정의
+# 3. 프롬프트 정의
 def get_system_prompt(mode):
     if mode == "아론 벡의 인지행동치료 (CBT)":
         return """
@@ -51,36 +45,35 @@ st.subheader("📝 오늘의 마음 기록")
 user_input = st.text_area("상담받고 싶은 고민이나 마음 상태를 상세히 적어주세요:", placeholder="예시: 이번 팀 프로젝트 발표를 완전히 망쳤어요...", height=150)
 submit_button = st.button("AI 심리 상담사에게 털어놓기 💬")
 
-# 5. 답변 처리 (Gemini 무료 서빙)
+# 5. 답변 처리 (가입/로그인 없는 무료 우회 엔진)
 if submit_button:
     if not user_input.strip():
         st.warning("⚠️ 고민 내용을 입력해주세요.")
-    elif GEMINI_API_KEY == "여기에_복사한_AIzaSy_구글_키를_그대로_붙여넣으세요":
-        st.error("⚠️ 코드 21번째 줄에 발급받은 Gemini API Key를 먼저 붙여넣어 주세요!")
     else:
-        with st.spinner(f"💡 Gemini가 {therapy_mode} 논문을 기반으로 분석 중입니다..."):
+        with st.spinner(f"💡 AI가 {therapy_mode} 논문을 기반으로 분석 중입니다..."):
             try:
-                # 2026 구글 최신 규격 라이브러리 적용
-                from google import genai
-                from google.genai import types
+                # 공용 무료 서버를 이용하여 구글의 고성능 오픈소스 모델을 직접 호출합니다.
+                # 회원가입이나 API 키가 일절 필요 없는 프리패스 주소입니다.
+                client = InferenceClient()
                 
-                # 입력된 키로 확실하게 클라이언트 생성
-                client = genai.Client(api_key=GEMINI_API_KEY)
+                messages = [
+                    {"role": "system", "content": get_system_prompt(therapy_mode)},
+                    {"role": "user", "content": user_input}
+                ]
                 
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=user_input,
-                    config=types.GenerateContentConfig(
-                        system_instruction=get_system_prompt(therapy_mode),
-                        temperature=0.7
-                    )
+                # 구글의 최신 Gemma-2 모델을 사용하여 무료로 답변을 받아옵니다.
+                response = client.chat.completions.create(
+                    model="google/gemma-2-9b-it",
+                    messages=messages,
+                    max_tokens=1000,
+                    temperature=0.7
                 )
                 
                 st.markdown("---")
                 st.subheader("✨ AI 심리 상담사의 마음 가이드")
                 with st.chat_message("assistant", avatar="🧠"):
-                    st.write(response.text)
+                    st.write(response.choices[0].message.content)
                 st.success("✅ 분석 및 상담이 완료되었습니다.")
                 
             except Exception as e:
-                st.error(f"❌ 에러가 발생했습니다: {e}")
+                st.error(f"❌ 에러가 발생했습니다: {e}\n네트워크 연결 상태를 확인해주세요.")
