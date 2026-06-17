@@ -42,6 +42,26 @@ def inject_custom_css() -> None:
             background-color: #F7F4EF;
         }
 
+        /* ---------------------------------------------------------
+           [추가] 드래그 블록 지정 및 포커스 시 파란색 제거
+        --------------------------------------------------------- */
+        /* 사용자가 글자를 마우스로 드래그(블록 지정)할 때 파란색 방지 */
+        ::selection {
+            background-color: #DCD4C9 !important; /* 부드러운 샌드 베이지 */
+            color: #2F2A25 !important;            /* 깊은 흑갈색 */
+        }
+        ::-moz-selection {
+            background-color: #DCD4C9 !important;
+            color: #2F2A25 !important;
+        }
+
+        /* 입력창이나 드롭다운 메뉴 선택(포커스) 시 파란색 테두리 방지 */
+        input:focus, select:focus, textarea:focus, div[role="combobox"]:focus-within {
+            border-color: #4A6653 !important;     /* 마음을 편안하게 하는 포레스트 그린 */
+            box-shadow: 0 0 0 1px #4A6653 !important;
+        }
+        /* --------------------------------------------------------- */
+
         /* 메인 타이틀 영역 */
         .main-title {
             text-align: center;
