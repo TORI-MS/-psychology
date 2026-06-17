@@ -24,7 +24,7 @@ therapy_mode = st.sidebar.selectbox(
 # =======================================================
 # ⚠️ [여기만 수정하세요] 아까 개인 계정으로 받은 구글 API 키를 넣어주세요!
 # 예: GEMINI_API_KEY = "AIzaSyAz..."
-GEMINI_API_KEY = "여기에_복사한_AIzaSy_구글_키를_그대로_붙여넣으세요"
+GEMINI_API_KEY = "AQ.Ab8RN6KBUQduUQaE2gl90ybjwb3Qah1SNzYMuDA2PVwuQOsKsg"
 # =======================================================
 
 st.title("🧠 마음을 읽는 Gemini 심리 상담소")
