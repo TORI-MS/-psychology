@@ -1,5 +1,5 @@
 import streamlit as st
-import openai
+from google import genai
 
 # 1. 웹 페이지 기본 설정 및 디자인
 st.set_page_config(
@@ -8,7 +8,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# 커스텀 스타일 입히기 (폰트 및 부드러운 배경 감성)
+# 커스텀 스타일 입히기
 st.markdown("""
     <style>
     .main { background-color: #fcfcfc; }
@@ -17,14 +17,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2. 사이드바 구성 (심리학 논문/이론 선택 및 API 설정)
+# 2. 사이드바 구성 (구글 API 설정 및 논문 선택)
 st.sidebar.title("🛠️ 상담 엔진 설정")
 st.sidebar.markdown("---")
-
-# OpenAI API 키 입력창 (보안을 위해 패스워드 형식으로 입력받음)
-# 발표 시에는 여기에 본인의 키를 하드코딩해두면 시연이 매끄럽습니다.
-# 예: openai_api_key = "sk-..."
-openai_api_key = st.sidebar.text_input("OpenAI API Key", type="password", help="OpenAI에서 발급받은 API Key를 입력하세요.")
+google_api_key = st.sidebar.text_input(
+    "Google Gemini API Key", 
+    type="password", 
+    help="구글 AI 스튜디오에서 발급받은 AIzaSy... 형태의 키를 입력하세요."
+)
 
 st.sidebar.markdown("---")
 st.sidebar.subheader("📚 기반 심리학 논문 선택")
@@ -38,19 +38,18 @@ therapy_mode = st.sidebar.selectbox(
 
 # 3. 메인 화면 타이틀 및 소개
 st.title("🧠 마음을 읽는 심리학 AI 상담소")
-st.write("현대 심리학 연구 논문을 기반으로 설계된 에이전트입니다. 고민이나 상담받고 싶은 내용을 편안하게 적어주세요.")
+st.write("구글 Gemini 모델과 현대 심리학 연구 논문을 결합한 에이전트입니다. 고민을 편안하게 적어주세요.")
 st.markdown("---")
 
-# 4. 심리학 논문 기반 하드코딩 프롬프트 정의 (학습/지침 주입)
-# RAG나 파인튜닝 없이도 논문 기반의 높은 정확도와 일관성을 보장하는 핵심 영역입니다.
+# 4. 심리학 논문 기반 프롬프트 정의 (System Instruction)
 def get_system_prompt(mode):
     if mode == "아론 벡의 인지행동치료 (CBT)":
         return """
         [역할 정의]
-        너는 아론 벡(Aaron Beck)의 인지행동치료(Cognitive Behavioral Therapy, CBT) 논문 및 임상 지침을 완벽히 마스터한 전문 심리 상담 에이전트야.
+        너는 아론 벡(Aaron Beck)의 인지행동치료(CBT) 논문 및 임상 지침을 완벽히 마스터한 전문 심리 상담 에이전트야.
         
         [치료적 접근 지침]
-        1. 내담자의 사연에서 '인지적 왜곡(Cognitive Distortions)'을 예리하게 포착해야 해. 특히 '과도한 일반화', '흑백논리', '감정적 추론', '파국화'가 있는지 분석해줘.
+        1. 내담자의 사연에서 '인지적 왜곡(과도한 일반화, 흑백논리, 감정적 추론, 파국화)'이 있는지 예리하게 분석해줘.
         2. 내담자의 감정을 비난하지 않고 깊이 공감하되, 부정적 생각의 고리를 끊어낼 수 있도록 도와야 해.
         
         [답변 출력 규칙]
@@ -67,7 +66,7 @@ def get_system_prompt(mode):
         너는 칼 로저스(Carl Rogers)의 인간중심치료(Person-Centered Therapy) 이론에 기반한 심리 상담 에이전트야.
         
         [치료적 접근 지침]
-        1. '무조건적 긍정적 존중(Unconditional Positive Regard)'과 '공감적 경청'이 핵심 가치야. 내담자의 어떤 행동이나 감정도 판단하거나 재단(평가)하지 마.
+        1. '무조건적 긍정적 존중'과 '공감적 경청'이 핵심 가치야. 내담자의 어떤 행동이나 감정도 판단하거나 평가하지 마.
         2. 해결책을 제시하거나 조언을 건네는 것은 인간중심치료 논문에 위배돼. 절대 "이렇게 하세요"라고 지시하지 마. 내담자 스스로 답을 찾을 힘이 있다고 믿어야 해.
         
         [답변 출력 규칙]
@@ -90,43 +89,39 @@ user_input = st.text_area(
 # 상담 시작 버튼
 submit_button = st.button("AI 심리 상담사에게 털어놓기 💬")
 
-# 6. 답변 처리 및 OpenAI API 연동 영역
+# 6. 답변 처리 및 Google API 연동 영역
 if submit_button:
-    if not openai_api_key:
-        st.error("⚠️ 시연 및 테스트를 위해 사이드바에 OpenAI API Key를 먼저 입력해주세요!")
+    if not google_api_key:
+        st.error("⚠️ 시연 및 테스트를 위해 사이드바에 Google Gemini API Key를 먼저 입력해주세요!")
     elif not user_input.strip():
         st.warning("⚠️ 고민 내용을 입력해주세요.")
     else:
-        # 로딩 애니메이션 실행 (발표 시 긴장감과 몰입감을 주는 요소)
+        # 로딩 애니메이션 실행
         with st.spinner(f"💡 AI가 {therapy_mode} 논문을 기반으로 사용자의 심리 상태를 분석 및 상담 중입니다..."):
             try:
-                # OpenAI API 클라이언트 설정
-                client = openai.OpenAI(api_key=openai_api_key)
+                # 구글 최신 규격 라이브러리 클라이언트 설정
+                client = genai.Client(api_key=google_api_key)
                 
-                # 선택된 모드에 따른 프롬프트 주입 (핵심 학습 인젝션)
+                # 선택된 모드에 따른 시스템 지침(프롬프트) 주입
                 system_instruction = get_system_prompt(therapy_mode)
                 
-                # GPT-4o 호출 (정확도와 문맥 이해도가 가장 높음)
-                response = client.chat.completions.create(
-                    model="gpt-4o",
-                    messages=[
-                        {"role": "system", "content": system_instruction},
-                        {"role": "user", "content": user_input}
-                    ],
-                    temperature=0.7 # 너무 창의적이지도, 너무 딱딱하지도 않은 상담에 최적화된 수치
+                # Gemini 최신 모델 호출
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=user_input,
+                    config=genai.types.GenerateContentConfig(
+                        system_instruction=system_instruction
+                    )
                 )
-                
-                ai_answer = response.choices[0].message.content
                 
                 # 결과 출력 UI
                 st.markdown("---")
                 st.subheader("✨ AI 심리 상담사의 마음 가이드")
                 
-                # 상담소 느낌의 대화창 스타일로 출력
                 with st.chat_message("assistant", avatar="🧠"):
-                    st.write(ai_answer)
+                    st.write(response.text)
                     
                 st.success("✅ 분석 및 상담이 완료되었습니다. 마음이 조금 편안해지셨기를 바랍니다.")
                 
             except Exception as e:
-                st.error(f"❌ 에러가 발생했습니다: {e}\nAPI 키가 올바른지 혹은 네트워크 상태를 확인해주세요.")
+                st.error(f"❌ 에러가 발생했습니다: {e}\nAPI 키가 올바른지 혹은 대시보드 로그를 확인해주세요.")
