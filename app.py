@@ -16,7 +16,7 @@ import traceback
 
 import streamlit as st
 from huggingface_hub import InferenceClient
-from huggingface_hub.errors import HfHubHTTPError
+from huggingface_hub.errors import HfHubHTTPError, BadRequestError
 
 
 # =========================================================
@@ -187,16 +187,27 @@ _HIDDEN_TOKEN = get_hidden_token()
 _TOKEN_IS_SET = bool(_HIDDEN_TOKEN)
 
 
+# 모델별로 실제 호스팅 가능성이 높은 Provider 후보들입니다.
+# "auto"를 먼저 시도한 뒤, 실패하면 이 후보들을 순서대로 재시도합니다.
+# (계정마다 활성화된 Provider가 다를 수 있어, 하나로 고정하지 않고
+#  여러 후보를 순차적으로 시도하는 방식이 가장 안정적입니다.)
+PROVIDER_FALLBACKS = {
+    "meta-llama/Meta-Llama-3.1-8B-Instruct": ["featherless-ai", "together", "novita", "fireworks-ai"],
+    "Qwen/Qwen2.5-72B-Instruct": ["novita", "together", "fireworks-ai", "featherless-ai", "nebius"],
+    "google/gemma-2-9b-it": ["featherless-ai", "nebius", "together"],
+}
+
+
 @st.cache_resource(show_spinner=False)
-def get_client(_token: str | None) -> InferenceClient:
+def get_client(_token: str | None, provider: str = "auto") -> InferenceClient:
     """
     InferenceClient를 생성합니다.
     provider='auto' 로 두면 huggingface_hub가 해당 모델을 서빙하는
-    가용 Provider(서버리스 무료 라우팅 포함)를 자동으로 선택합니다.
-    토큰이 없는 경우(_token=None)에도 객체 생성 자체는 가능하며,
-    실제 요청 시점에 권한 문제가 발생하면 아래 except 블록에서 안내합니다.
+    가용 Provider 중 하나를 자동으로 선택합니다. 다만 계정에 해당
+    Provider가 활성화되어 있지 않으면 'model_not_supported' 오류가
+    날 수 있어, 호출부에서 여러 provider를 순차적으로 재시도합니다.
     """
-    return InferenceClient(provider="auto", token=_token)
+    return InferenceClient(provider=provider, token=_token)
 
 
 # =========================================================
@@ -242,6 +253,12 @@ with st.sidebar:
     with st.expander("🛠️ 서버 연결 상태 (개발자 확인용)"):
         if _TOKEN_IS_SET:
             st.success("HF_TOKEN이 정상적으로 인식되었습니다.")
+            st.caption(
+                "그래도 'model_not_supported' 오류가 난다면, "
+                "huggingface.co/settings/inference-providers 페이지에서 "
+                "Featherless AI / Novita / Together 등 Provider가 "
+                "활성화되어 있는지 확인해주세요."
+            )
         else:
             st.error(
                 "HF_TOKEN을 찾지 못했습니다.\n\n"
@@ -301,6 +318,10 @@ def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
     """
     huggingface_hub InferenceClient의 chat.completions.create를 사용해
     상담 답변을 스트리밍 방식으로 가져오는 제너레이터.
+
+    먼저 provider='auto'로 시도하고, 'model_not_supported'(해당 계정에
+    활성화된 Provider가 없는 경우) 오류가 나면 PROVIDER_FALLBACKS에 정의된
+    후보 Provider들을 순서대로 재시도합니다.
     """
     if not _TOKEN_IS_SET:
         # 모델 호출 자체를 시도하지 않고, 원인이 명확한 예외를 즉시 발생시킵니다.
@@ -312,27 +333,61 @@ def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
             "HF_TOKEN이 설정되어 있는지 확인해주세요."
         )
 
-    client = get_client(_HIDDEN_TOKEN)
+    candidate_providers = ["auto"] + PROVIDER_FALLBACKS.get(model_id, [])
+    last_error: Exception | None = None
 
-    stream = client.chat.completions.create(
-        model=model_id,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text},
-        ],
-        max_tokens=900,
-        temperature=0.7,
-        top_p=0.9,
-        stream=True,
-    )
-
-    for chunk in stream:
+    for provider in candidate_providers:
         try:
-            delta = chunk.choices[0].delta.content
-        except (AttributeError, IndexError, TypeError):
-            delta = None
-        if delta:
-            yield delta
+            client = get_client(_HIDDEN_TOKEN, provider)
+            stream = client.chat.completions.create(
+                model=model_id,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_text},
+                ],
+                max_tokens=900,
+                temperature=0.7,
+                top_p=0.9,
+                stream=True,
+            )
+
+            got_any_chunk = False
+            for chunk in stream:
+                try:
+                    delta = chunk.choices[0].delta.content
+                except (AttributeError, IndexError, TypeError):
+                    delta = None
+                if delta:
+                    got_any_chunk = True
+                    yield delta
+
+            if got_any_chunk:
+                return  # 이 provider로 성공했으므로 함수 종료
+
+        except BadRequestError as e:
+            # 'model_not_supported' 등 잘못된 요청 - 다음 provider 후보로 재시도
+            last_error = e
+            continue
+        except HfHubHTTPError as e:
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            # 인증(401/403) 문제는 provider를 바꿔도 해결되지 않으므로 즉시 중단합니다.
+            if status in (401, 403):
+                raise
+            # 그 외 HTTP 오류(429, 503 등)도 다음 provider 후보로 재시도해봅니다.
+            last_error = e
+            continue
+        except Exception as e:  # noqa: BLE001
+            last_error = e
+            continue
+
+    # 모든 provider 후보가 실패한 경우
+    if last_error is not None:
+        raise RuntimeError(
+            "PROVIDER_NOT_AVAILABLE: 이 모델을 서빙할 수 있는 Provider를 "
+            f"현재 계정에서 찾지 못했어요. (시도한 옵션: {', '.join(candidate_providers)}) "
+            "huggingface.co/settings/inference-providers 에서 Provider를 "
+            f"활성화해주세요. 원본 오류: {last_error}"
+        )
 
 
 if submit_clicked:
@@ -380,6 +435,14 @@ if submit_clicked:
                     "⚠️ 서버에 AI 모델 접속 토큰이 아직 설정되지 않았어요. "
                     "운영자에게 문의해주세요. (사이드바의 '서버 연결 상태'에서도 "
                     "확인할 수 있어요.)"
+                )
+            elif "PROVIDER_NOT_AVAILABLE" in str(e):
+                friendly = (
+                    f"🛠️ '{selected_model_label.split(' · ')[0]}' 모델을 현재 "
+                    "계정에서 호출할 수 있는 서버 경로를 찾지 못했어요. "
+                    "다른 AI 모델로 변경해 다시 시도해보시거나, 운영자에게 "
+                    "huggingface.co의 Inference Providers 활성화 설정을 "
+                    "확인해달라고 요청해주세요."
                 )
             else:
                 friendly = "😥 알 수 없는 오류가 발생했어요. 잠시 후 다시 시도해주세요."
