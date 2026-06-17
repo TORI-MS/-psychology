@@ -6,7 +6,8 @@
 - huggingface_hub의 InferenceClient를 사용하여 무료 서버리스 인퍼런스(Inference Providers)로
   여러 LLM(Llama-3.1-8B, Qwen2.5-72B, Gemma-2-9B)을 선택해 호출합니다.
 - 인증은 앱 내부에 보관된 토큰(st.secrets 또는 환경변수)으로 '조용히' 처리되며,
-  사용자 화면에는 절대 노출되지 않습니다.
+  사용자 화면에는 절대 노출되지 않습니다. (토큰이 없어도 앱이 죽지 않고
+  친절한 안내 메시지를 보여줍니다.)
 """
 
 import os
@@ -30,121 +31,87 @@ st.set_page_config(
 
 
 # =========================================================
-# 1. 아늑하고 차분한 커스텀 CSS (명도 대비 및 다크모드 대응 보완)
+# 1. 따뜻한 톤의 커스텀 CSS (글씨 차이 완벽 해결 버젼)
 # =========================================================
 def inject_custom_css() -> None:
     st.markdown(
         """
         <style>
-        /* [핵심] 다크모드/라이트모드 무관하게 배경과 글씨색을 고정하여 가독성 확보 */
-        
-        /* 전체 배경 - 눈이 편안한 따뜻한 밀크티/웜그레이 톤 */
+        /* 전체 배경 - 따뜻한 베이지/아이보리 톤 */
         .stApp {
-            background-color: #F7F4F0 !important;
+            background-color: #FAF6F0;
         }
 
         /* 메인 타이틀 영역 */
         .main-title {
             text-align: center;
-            padding: 1.5rem 0 0.8rem 0;
+            padding: 1.2rem 0 0.4rem 0;
         }
         .main-title h1 {
-            color: #382F2E !important; /* 더 깊은 브라운으로 명도 대비 강화 */
-            font-weight: 700;
-            margin-bottom: 0.4rem;
-            font-size: 2.2rem;
-            letter-spacing: -0.03em;
+            color: #4A3B2C; /* 조금 더 진하게 하여 가독성 확보 */
+            font-weight: 800;
+            margin-bottom: 0.2rem;
         }
         .main-title p {
-            color: #70605A !important;
-            font-size: 1.05rem;
+            color: #8A725D; /* 글씨 흐릿한 문제 해결 */
+            font-size: 0.95rem;
             margin-top: 0;
         }
 
-        /* 카드 느낌의 박스 (현재 설정 상태 등) */
+        /* 카드 느낌의 박스 */
         .soft-card {
-            background-color: #FFFFFF !important;
-            border: 1px solid #EBE4DC !important;
+            background-color: #FFFDF9;
+            border: 1px solid #EFE4D8;
             border-radius: 16px;
-            padding: 1.2rem 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 12px rgba(140, 123, 117, 0.04);
-            color: #4A3E3D !important; /* 글씨가 선명하게 보이도록 어둡게 조정 */
-            font-size: 0.95rem;
-            line-height: 1.6;
+            padding: 1.2rem 1.4rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 8px rgba(160, 130, 100, 0.08);
+            color: #4A3B2C; /* 글씨색 명시 */
         }
 
-        /* AI 답변 박스 - 편안한 초록빛이 감도는 세이지 틴트 톤 */
+        /* AI 답변 박스 (다운된 세이지 그린 틴트 + 완전 선명한 글씨색) */
         .answer-box {
-            background-color: #EBF0EC !important; /* 조금 더 짙은 세이지 톤으로 변경 */
-            border: 1px solid #D1DDD5 !important;
-            border-radius: 20px;
-            padding: 1.6rem 1.8rem;
-            line-height: 1.8;
-            color: #1C2B22 !important; /* 검은색에 가까운 짙은 녹청색으로 글씨 인지력 극대화 */
-            font-size: 1.05rem;
-            box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
+            background-color: #EBF0EC; 
+            border: 1px solid #D1DDD5;
+            border-radius: 18px;
+            padding: 1.5rem 1.6rem;
+            line-height: 1.75;
+            color: #1C2B22; /* 흑백 대비 확실하게 어두운 색으로 고정 */
+            font-size: 1.02rem;
         }
 
-        /* Streamlit 기본 입력창(Textarea) 내부 글씨가 다크모드에서 안 보이는 현상 방지 */
+        /* 입력창 내부 글씨가 배경에 묻히지 않도록 강제 지정 */
         .stTextArea textarea {
-            color: #382F2E !important;
-            background-color: #FFFFFF !important;
-            border: 1px solid #DCD1C4 !important;
-        }
-        
-        /* 입력창 라벨 글씨색 고정 */
-        .stTextArea label p {
-            color: #382F2E !important;
-            font-weight: 500;
+            color: #4A3B2C;
+            background-color: #FFFFFF;
         }
 
-        /* 버튼 스타일 - 마음의 안정을 주는 다운된 세이지 그린 */
+        /* 버튼 스타일 - 세이지 그린 */
         div.stButton > button {
-            background-color: #63756B !important; /* 명도를 살짝 낮춰 글씨와 더 선명하게 대비 */
-            color: #FFFFFF !important;
-            border: none !important;
-            border-radius: 14px;
-            padding: 0.7rem 1.2rem;
-            font-weight: 600;
+            background-color: #63756B;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 12px;
+            padding: 0.6rem 1.2rem;
+            font-weight: 700;
             font-size: 1.05rem;
             width: 100%;
-            transition: all 0.25s ease-in-out;
-            box-shadow: 0 2px 6px rgba(114, 132, 122, 0.15);
+            transition: background-color 0.2s ease-in-out;
         }
         div.stButton > button:hover {
-            background-color: #4F5E56 !important;
-            color: #FFFFFF !important;
-            box-shadow: 0 4px 10px rgba(114, 132, 122, 0.25);
+            background-color: #4F5E56;
+            color: #FFFFFF;
         }
 
-        /* 초기화 버튼 (secondary 형태) */
-        div.stButton > button[data-testid="baseButton-secondary"] {
-            background-color: transparent !important;
-            color: #70605A !important;
-            border: 1px solid #CFC4B7 !important;
-        }
-        div.stButton > button[data-testid="baseButton-secondary"]:hover {
-            background-color: #EBE4DC !important;
-            color: #382F2E !important;
-        }
-
-        /* 사이드바 배경 및 내부 텍스트 컬러 고정 */
+        /* 사이드바 */
         section[data-testid="stSidebar"] {
-            background-color: #EDE6DE !important;
-        }
-        section[data-testid="stSidebar"] h3, 
-        section[data-testid="stSidebar"] h4, 
-        section[data-testid="stSidebar"] p,
-        section[data-testid="stSidebar"] label p {
-            color: #382F2E !important;
+            background-color: #F3EAE0;
         }
 
         /* 안내 캡션 */
         .small-note {
-            color: #7A6C66 !important; /* 너무 흐리지 않게 톤 다운 조정 */
-            font-size: 0.85rem;
-            line-height: 1.5;
+            color: #7A6C66; /* 선명도 보완 */
+            font-size: 0.82rem;
         }
         </style>
         """,
@@ -156,7 +123,7 @@ inject_custom_css()
 
 
 # =========================================================
-# 2. 모델 / 상담 이론 메타데이터 정의 (UX 텍스트 비AI화)
+# 2. 모델 / 상담 이론 메타데이터 정의 (원래 텍스트 및 구조 완벽 복구)
 # =========================================================
 MODEL_OPTIONS = {
     "깊고 명쾌한 대화 · 이성적 분석가": {
@@ -206,7 +173,7 @@ def build_system_prompt(theory_key: str) -> str:
 
 
 # =========================================================
-# 3. 인증 토큰 처리
+# 3. 인증 토큰 처리 (원래 로직 원상복구)
 # =========================================================
 def get_hidden_token() -> str | None:
     try:
@@ -244,7 +211,6 @@ with st.sidebar:
         "목소리 톤 고르기",
         options=list(MODEL_OPTIONS.keys()),
         index=2,
-        label_visibility="collapsed"
     )
     selected_model_id = MODEL_OPTIONS[selected_model_label]["id"]
     st.caption(f"✨ {MODEL_OPTIONS[selected_model_label]['desc']}")
@@ -256,7 +222,6 @@ with st.sidebar:
         "상담 접근방식 고르기",
         options=list(THEORY_OPTIONS.keys()),
         index=0,
-        label_visibility="collapsed"
     )
     selected_theory_key = THEORY_OPTIONS[selected_theory_label]
     st.caption(f"✨ {THEORY_DESCRIPTIONS[selected_theory_key]}")
@@ -269,14 +234,14 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    with st.expander("🛠️ 시스템 연결 확인 (운영자 확인용)"):
+    with st.expander("🛠️ 서버 연결 상태 (개발자 확인용)"):
         if _TOKEN_IS_SET:
-            st.success("상담실 연결 통로가 정상적으로 열려 있습니다.")
+            st.success("HF_TOKEN이 정상적으로 인식되었습니다.")
         else:
             st.error(
-                "연결 토큰(HF_TOKEN)을 찾지 못했습니다.\n\n"
-                "Streamlit Cloud 배포 시: Settings -> Secrets에 HF_TOKEN을 등록해주세요.\n"
-                "로컬 실행 시: .streamlit/secrets.toml 파일에 토큰을 기입해주세요."
+                "HF_TOKEN을 찾지 못했습니다.\n\n"
+                "Streamlit Cloud에 배포한 경우: 앱 관리 화면 → Settings → "
+                "Secrets 탭에 HF_TOKEN을 등록한 뒤 앱을 Reboot 해주세요."
             )
 
 
@@ -306,8 +271,8 @@ st.markdown(
 user_input = st.text_area(
     label="지금 마음 한구석을 무겁게 만드는 고민이 있다면, 편하게 털어놓아 보세요. ✍️",
     placeholder=(
-        "예) 요즘 작은 실수에도 온종일 마음이 쓰여요. 주변 사람들이 나를 안 좋게 "
-        "평가할 것만 같아 불안하고, 밤이 되면 자꾸 서글퍼집니다..."
+        "예) 요즘 회사에서 작은 실수를 했는데, 다들 나를 무능하다고 생각할 것 같아서 "
+        "잠도 잘 못 자고 계속 그 생각만 나요..."
     ),
     height=220,
 )
@@ -323,11 +288,15 @@ if clear_clicked:
 
 
 # =========================================================
-# 6. 모델 호출 및 결과 출력 (들여쓰기 완전 정렬)
+# 6. 원래 완벽하게 돌아가던 모델 호출 및 결과 출력 구조 (복구 완료)
 # =========================================================
 def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
     if not _TOKEN_IS_SET:
-        raise RuntimeError("HF_TOKEN_NOT_CONFIGURED")
+        raise RuntimeError(
+            "HF_TOKEN_NOT_CONFIGURED: 서버에 등록된 HF_TOKEN을 찾을 수 없습니다. "
+            "배포 환경(Streamlit Cloud Secrets 또는 로컬 .streamlit/secrets.toml)에 "
+            "HF_TOKEN이 설정되어 있는지 확인해주세요."
+        )
 
     candidate_providers = ["auto"] + PROVIDER_FALLBACKS.get(model_id, [])
     last_error: Exception | None = None
@@ -358,7 +327,7 @@ def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
                     yield delta
 
             if got_any_chunk:
-                return
+                return  # 이 provider로 성공했으므로 함수 종료
 
         except BadRequestError as e:
             last_error = e
@@ -369,12 +338,17 @@ def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
                 raise
             last_error = e
             continue
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             last_error = e
             continue
 
     if last_error is not None:
-        raise RuntimeError("PROVIDER_NOT_AVAILABLE")
+        raise RuntimeError(
+            "PROVIDER_NOT_AVAILABLE: 이 모델을 서빙할 수 있는 Provider를 "
+            f"현재 계정에서 찾지 못했어요. (시도한 옵션: {', '.join(candidate_providers)}) "
+            "huggingface.co/settings/inference-providers 에서 Provider를 "
+            f"활성화해주세요. 원본 오류: {last_error}"
+        )
 
 
 if submit_clicked:
@@ -416,44 +390,76 @@ if submit_clicked:
         except RuntimeError as e:
             error_occurred = True
             if "HF_TOKEN_NOT_CONFIGURED" in str(e):
-                friendly = "⚠️ 마음을 전달하는 연결 통로에 설정이 누락되었습니다. 상담실 관리자에게 확인을 부탁해주세요."
+                friendly = (
+                    "⚠️ 서버에 AI 모델 접속 토큰이 아직 설정되지 않았어요. "
+                    "운영자에게 문의해주세요. (사이드바의 '서버 연결 상태'에서도 "
+                    "확인할 수 있어요.)"
+                )
             elif "PROVIDER_NOT_AVAILABLE" in str(e):
-                friendly = "🛠️ 선택하신 대화 통로에 잠시 정비가 필요합니다. 왼쪽 메뉴에서 다른 상담사를 선택해 이야기를 다시 건네어 보세요."
+                friendly = (
+                    f"🛠️ '{selected_model_label.split(' · ')[0]}' 모델을 현재 "
+                    "계정에서 호출할 수 있는 서버 경로를 찾지 못했어요. "
+                    "다른 AI 모델로 변경해 다시 시도해보시거나, 운영자에게 "
+                    "huggingface.co의 Inference Providers 활성화 설정을 "
+                    "확인해달라고 요청해주세요."
+                )
             else:
-                friendly = "😥 통신에 작은 문제가 생겨 마음이 온전히 닿지 못했습니다. 잠시 후 편안할 때 다시 한 번 적어주세요."
-            
-            answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
+                friendly = "😥 알 수 없는 오류가 발생했어요. 잠시 후 다시 시도해주세요."
+            answer_placeholder.markdown(
+                f'<div class="answer-box">{friendly}</div>',
+                unsafe_allow_html=True,
+            )
+            with st.expander("자세한 오류 로그 보기 (개발자용)"):
+                st.code(f"{type(e).__name__}: {e}")
 
         except HfHubHTTPError as e:
             error_occurred = True
             status = getattr(getattr(e, "response", None), "status_code", None)
             if status in (401, 403):
-                friendly = "🔒 대화 공간의 권한에 작은 엉킴이 생겼습니다. 잠시 후 다시 시도해보거나 다른 상담사 스타일을 골라보세요."
+                friendly = (
+                    "🔒 현재 무료 인퍼런스 서버의 인증/권한 문제로 답변을 받아오지 못했어요. "
+                    "잠시 후 다시 시도해주시거나, 다른 AI 모델로 변경해 다시 시도해보세요."
+                )
             elif status == 429:
-                friendly = "⏳ 지금 이 공간을 찾는 분들이 많아 상담실이 조금 붐비고 있습니다. 약 1분 정도 숨을 고른 뒤 다시 이야기를 건네어 주세요."
+                friendly = (
+                    "⏳ 지금 무료 서버에 요청이 많아 잠시 대기가 필요해요. "
+                    "30초~1분 후 다시 시도해주세요."
+                )
             elif status == 503:
-                friendly = "🛠️ 상담사가 대화를 맞이할 준비(서버 로딩)를 하고 있습니다. 20~30초만 가만히 기다려 주신 뒤 다시 대화를 걸어주세요."
+                friendly = (
+                    "🛠️ 선택하신 AI 모델이 현재 워밍업(로딩) 중이에요. "
+                    "잠시(약 20~30초) 후 다시 시도해주시면 정상적으로 응답이 와요."
+                )
             else:
-                friendly = "😥 이야기 통로에 예상치 못한 안개가 꼈습니다. 잠시 후 맑아지면 다시 찾아와주세요."
+                friendly = "😥 모델 서버 호출 중 문제가 발생했어요. 잠시 후 다시 시도해주세요."
 
-            answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
+            answer_placeholder.markdown(
+                f'<div class="answer-box">{friendly}</div>',
+                unsafe_allow_html=True,
+            )
+            with st.expander("자세한 오류 로그 보기 (개발자용)"):
+                st.code(f"{type(e).__name__}: {e}")
 
         except Exception as e:
             error_occurred = True
             answer_placeholder.markdown(
-                '<div class="answer-box">😥 예기치 못한 작은 오류로 대화가 끊겼습니다. 마음에 안정을 취한 뒤 다른 상담사를 선택해 말을 건네어 보세요.</div>',
+                '<div class="answer-box">😥 답변을 가져오는 중 예상치 못한 문제가 발생했어요. '
+                "잠시 후 다시 시도하거나 다른 AI 모델을 선택해보세요.</div>",
                 unsafe_allow_html=True,
             )
+            with st.expander("자세한 오류 로그 보기 (개발자용)"):
+                st.code(traceback.format_exc())
 
         if not error_occurred and full_response:
             answer_placeholder.markdown(
                 f'<div class="answer-box">{full_response}</div>',
                 unsafe_allow_html=True,
             )
-            st.success("상담사의 진심 어린 답신이 도착했습니다. 천천히 가슴으로 읽어보세요. 🌱")
+            st.success("상담사가 답변을 마쳤어요. 천천히 읽어보세요. 🌱")
         elif not error_occurred and not full_response:
             answer_placeholder.markdown(
-                '<div class="answer-box">😥 깊은 고민 끝에 상담사가 말문을 열지 못했습니다. 다른 성향의 상담사를 선택해 한 번 더 말을 걸어주세요.</div>',
+                '<div class="answer-box">😥 모델이 빈 답변을 반환했어요. '
+                "다시 시도하거나 다른 모델로 바꿔보세요.</div>",
                 unsafe_allow_html=True,
             )
 
@@ -463,7 +469,7 @@ if submit_clicked:
 # =========================================================
 st.markdown("---")
 st.caption(
-    "🌿 본 대화실은 AI 기반 자기이해 보조 도구이며, 전문 심리상담이나 "
-    "정신건강 의학적 치료를 대체하지 못합니다. 마음의 짐이 너무 무거워 위태로울 때는 "
-    "자살예방상담전화 (국내, 1393) 등 따뜻한 전문가의 손을 꼭 잡아주세요."
+    "🌿 본 서비스는 AI 기반 자기이해 보조 도구이며, 전문 심리상담이나 "
+    "정신건강 의학적 치료를 대체하지 않습니다. 위기 상황에는 자살예방상담전화 "
+    "(국내, 1393) 등 전문기관에 즉시 연락해주세요."
 )
