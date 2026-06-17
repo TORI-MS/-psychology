@@ -30,15 +30,17 @@ st.set_page_config(
 
 
 # =========================================================
-# 1. 아늑하고 차분한 커스텀 CSS (세이지 그린 & 밀크티 톤)
+# 1. 아늑하고 차분한 커스텀 CSS (명도 대비 및 다크모드 대응 보완)
 # =========================================================
 def inject_custom_css() -> None:
     st.markdown(
         """
         <style>
+        /* [핵심] 다크모드/라이트모드 무관하게 배경과 글씨색을 고정하여 가독성 확보 */
+        
         /* 전체 배경 - 눈이 편안한 따뜻한 밀크티/웜그레이 톤 */
         .stApp {
-            background-color: #F7F4F0;
+            background-color: #F7F4F0 !important;
         }
 
         /* 메인 타이틀 영역 */
@@ -47,48 +49,61 @@ def inject_custom_css() -> None:
             padding: 1.5rem 0 0.8rem 0;
         }
         .main-title h1 {
-            color: #4A3E3D;
+            color: #382F2E !important; /* 더 깊은 브라운으로 명도 대비 강화 */
             font-weight: 700;
             margin-bottom: 0.4rem;
             font-size: 2.2rem;
             letter-spacing: -0.03em;
         }
         .main-title p {
-            color: #8C7B75;
+            color: #70605A !important;
             font-size: 1.05rem;
             margin-top: 0;
         }
 
         /* 카드 느낌의 박스 (현재 설정 상태 등) */
         .soft-card {
-            background-color: #FFFFFF;
-            border: 1px solid #EBE4DC;
+            background-color: #FFFFFF !important;
+            border: 1px solid #EBE4DC !important;
             border-radius: 16px;
             padding: 1.2rem 1.5rem;
             margin-bottom: 1.5rem;
             box-shadow: 0 4px 12px rgba(140, 123, 117, 0.04);
-            color: #5C4E4B;
+            color: #4A3E3D !important; /* 글씨가 선명하게 보이도록 어둡게 조정 */
             font-size: 0.95rem;
             line-height: 1.6;
         }
 
         /* AI 답변 박스 - 편안한 초록빛이 감도는 세이지 틴트 톤 */
         .answer-box {
-            background-color: #F2F5F3;
-            border: 1px solid #E1E6E2;
+            background-color: #EBF0EC !important; /* 조금 더 짙은 세이지 톤으로 변경 */
+            border: 1px solid #D1DDD5 !important;
             border-radius: 20px;
             padding: 1.6rem 1.8rem;
             line-height: 1.8;
-            color: #2F3E36;
+            color: #1C2B22 !important; /* 검은색에 가까운 짙은 녹청색으로 글씨 인지력 극대화 */
             font-size: 1.05rem;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
         }
 
+        /* Streamlit 기본 입력창(Textarea) 내부 글씨가 다크모드에서 안 보이는 현상 방지 */
+        .stTextArea textarea {
+            color: #382F2E !important;
+            background-color: #FFFFFF !important;
+            border: 1px solid #DCD1C4 !important;
+        }
+        
+        /* 입력창 라벨 글씨색 고정 */
+        .stTextArea label p {
+            color: #382F2E !important;
+            font-weight: 500;
+        }
+
         /* 버튼 스타일 - 마음의 안정을 주는 다운된 세이지 그린 */
         div.stButton > button {
-            background-color: #72847A;
-            color: #FFFFFF;
-            border: none;
+            background-color: #63756B !important; /* 명도를 살짝 낮춰 글씨와 더 선명하게 대비 */
+            color: #FFFFFF !important;
+            border: none !important;
             border-radius: 14px;
             padding: 0.7rem 1.2rem;
             font-weight: 600;
@@ -98,30 +113,36 @@ def inject_custom_css() -> None:
             box-shadow: 0 2px 6px rgba(114, 132, 122, 0.15);
         }
         div.stButton > button:hover {
-            background-color: #5F7066;
-            color: #FFFFFF;
+            background-color: #4F5E56 !important;
+            color: #FFFFFF !important;
             box-shadow: 0 4px 10px rgba(114, 132, 122, 0.25);
         }
 
         /* 초기화 버튼 (secondary 형태) */
         div.stButton > button[data-testid="baseButton-secondary"] {
-            background-color: transparent;
-            color: #8C7B75;
-            border: 1px solid #DCD1C4;
+            background-color: transparent !important;
+            color: #70605A !important;
+            border: 1px solid #CFC4B7 !important;
         }
         div.stButton > button[data-testid="baseButton-secondary"]:hover {
-            background-color: #EBE4DC;
-            color: #5C4E4B;
+            background-color: #EBE4DC !important;
+            color: #382F2E !important;
         }
 
-        /* 사이드바 */
+        /* 사이드바 배경 및 내부 텍스트 컬러 고정 */
         section[data-testid="stSidebar"] {
-            background-color: #EDE6DE;
+            background-color: #EDE6DE !important;
+        }
+        section[data-testid="stSidebar"] h3, 
+        section[data-testid="stSidebar"] h4, 
+        section[data-testid="stSidebar"] p,
+        section[data-testid="stSidebar"] label p {
+            color: #382F2E !important;
         }
 
         /* 안내 캡션 */
         .small-note {
-            color: #9C8E87;
+            color: #7A6C66 !important; /* 너무 흐리지 않게 톤 다운 조정 */
             font-size: 0.85rem;
             line-height: 1.5;
         }
@@ -212,7 +233,7 @@ def get_client(_token: str | None, provider: str = "auto") -> InferenceClient:
 
 
 # =========================================================
-# 4. 사이드바 UI (UX 텍스트 전면 개편)
+# 4. 사이드바 UI
 # =========================================================
 with st.sidebar:
     st.markdown("### ⚙️ 상담실 문 열기")
@@ -272,7 +293,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# 간결하고 정돈된 카드 형태의 요약문
 st.markdown(
     f"""
     <div class="soft-card">
@@ -303,7 +323,7 @@ if clear_clicked:
 
 
 # =========================================================
-# 6. 모델 호출 및 결과 출력 (UX 텍스트 비AI화)
+# 6. 모델 호출 및 결과 출력 (들여쓰기 완전 정렬)
 # =========================================================
 def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
     if not _TOKEN_IS_SET:
@@ -368,75 +388,74 @@ if submit_clicked:
         st.markdown("#### 💌 당신을 향한 따뜻한 답신")
         answer_placeholder = st.empty()
         answer_placeholder.markdown(
-        '<div class="answer-box">이야기를 조용히 읽으며 생각을 정리하고 있어요...</div>',
-        unsafe_allow_html=True,
-    )
+            '<div class="answer-box">이야기를 조용히 읽으며 생각을 정리하고 있어요...</div>',
+            unsafe_allow_html=True,
+        )
 
         full_response = ""
         error_occurred = False
 
         try:
-        # 스피너 메시지도 다정하게 변경
-        with st.spinner("마음을 가만히 들여다보는 중입니다..."):
-            first_chunk_received = False
-            for delta in call_counseling_model(
-                model_id=selected_model_id,
-                system_prompt=system_prompt,
-                user_text=cleaned_text,
-            ):
-                full_response += delta
-                first_chunk_received = True
-                answer_placeholder.markdown(
-                    f'<div class="answer-box">{full_response}▌</div>',
-                    unsafe_allow_html=True,
-                )
+            with st.spinner("마음을 가만히 들여다보는 중입니다..."):
+                first_chunk_received = False
+                for delta in call_counseling_model(
+                    model_id=selected_model_id,
+                    system_prompt=system_prompt,
+                    user_text=cleaned_text,
+                ):
+                    full_response += delta
+                    first_chunk_received = True
+                    answer_placeholder.markdown(
+                        f'<div class="answer-box">{full_response}▌</div>',
+                        unsafe_allow_html=True,
+                    )
 
-            if not first_chunk_received:
-                error_occurred = True
+                if not first_chunk_received:
+                    error_occurred = True
 
         except RuntimeError as e:
-        error_occurred = True
-        if "HF_TOKEN_NOT_CONFIGURED" in str(e):
-            friendly = "⚠️ 마음을 전달하는 연결 통로에 설정이 누락되었습니다. 상담실 관리자에게 확인을 부탁해주세요."
-        elif "PROVIDER_NOT_AVAILABLE" in str(e):
-            friendly = "🛠️ 선택하신 대화 통로에 잠시 정비가 필요합니다. 왼쪽 메뉴에서 다른 상담사를 선택해 이야기를 다시 건네어 보세요."
-        else:
-            friendly = "😥 통신에 작은 문제가 생겨 마음이 온전히 닿지 못했습니다. 잠시 후 편안할 때 다시 한 번 적어주세요."
-        
-        answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
+            error_occurred = True
+            if "HF_TOKEN_NOT_CONFIGURED" in str(e):
+                friendly = "⚠️ 마음을 전달하는 연결 통로에 설정이 누락되었습니다. 상담실 관리자에게 확인을 부탁해주세요."
+            elif "PROVIDER_NOT_AVAILABLE" in str(e):
+                friendly = "🛠️ 선택하신 대화 통로에 잠시 정비가 필요합니다. 왼쪽 메뉴에서 다른 상담사를 선택해 이야기를 다시 건네어 보세요."
+            else:
+                friendly = "😥 통신에 작은 문제가 생겨 마음이 온전히 닿지 못했습니다. 잠시 후 편안할 때 다시 한 번 적어주세요."
+            
+            answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
 
-    except HfHubHTTPError as e:
-        error_occurred = True
-        status = getattr(getattr(e, "response", None), "status_code", None)
-        if status in (401, 403):
-            friendly = "🔒 대화 공간의 권한에 작은 엉킴이 생겼습니다. 잠시 후 다시 시도해보거나 다른 상담사 스타일을 골라보세요."
-        elif status == 429:
-            friendly = "⏳ 지금 이 공간을 찾는 분들이 많아 상담실이 조금 붐비고 있습니다. 약 1분 정도 숨을 고른 뒤 다시 이야기를 건네어 주세요."
-        elif status == 503:
-            friendly = "🛠️ 상담사가 대화를 맞이할 준비(서버 로딩)를 하고 있습니다. 20~30초만 가만히 기다려 주신 뒤 다시 대화를 걸어주세요."
-        else:
-            friendly = "😥 이야기 통로에 예상치 못한 안개가 꼈습니다. 잠시 후 맑아지면 다시 찾아와주세요."
+        except HfHubHTTPError as e:
+            error_occurred = True
+            status = getattr(getattr(e, "response", None), "status_code", None)
+            if status in (401, 403):
+                friendly = "🔒 대화 공간의 권한에 작은 엉킴이 생겼습니다. 잠시 후 다시 시도해보거나 다른 상담사 스타일을 골라보세요."
+            elif status == 429:
+                friendly = "⏳ 지금 이 공간을 찾는 분들이 많아 상담실이 조금 붐비고 있습니다. 약 1분 정도 숨을 고른 뒤 다시 이야기를 건네어 주세요."
+            elif status == 503:
+                friendly = "🛠️ 상담사가 대화를 맞이할 준비(서버 로딩)를 하고 있습니다. 20~30초만 가만히 기다려 주신 뒤 다시 대화를 걸어주세요."
+            else:
+                friendly = "😥 이야기 통로에 예상치 못한 안개가 꼈습니다. 잠시 후 맑아지면 다시 찾아와주세요."
 
-        answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
+            answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
 
-    except Exception as e:
-        error_occurred = True
-        answer_placeholder.markdown(
-            '<div class="answer-box">😥 예기치 못한 작은 오류로 대화가 끊겼습니다. 마음에 안정을 취한 뒤 다른 상담사를 선택해 말을 건네어 보세요.</div>',
-            unsafe_allow_html=True,
-        )
+        except Exception as e:
+            error_occurred = True
+            answer_placeholder.markdown(
+                '<div class="answer-box">😥 예기치 못한 작은 오류로 대화가 끊겼습니다. 마음에 안정을 취한 뒤 다른 상담사를 선택해 말을 건네어 보세요.</div>',
+                unsafe_allow_html=True,
+            )
 
-    if not error_occurred and full_response:
-        answer_placeholder.markdown(
-            f'<div class="answer-box">{full_response}</div>',
-            unsafe_allow_html=True,
-        )
-        st.success("상담사의 진심 어린 답신이 도착했습니다. 천천히 가슴으로 읽어보세요. 🌱")
-    elif not error_occurred and not full_response:
-        answer_placeholder.markdown(
-            '<div class="answer-box">😥 깊은 고민 끝에 상담사가 말문을 열지 못했습니다. 다른 성향의 상담사를 선택해 한 번 더 말을 걸어주세요.</div>',
-            unsafe_allow_html=True,
-        )
+        if not error_occurred and full_response:
+            answer_placeholder.markdown(
+                f'<div class="answer-box">{full_response}</div>',
+                unsafe_allow_html=True,
+            )
+            st.success("상담사의 진심 어린 답신이 도착했습니다. 천천히 가슴으로 읽어보세요. 🌱")
+        elif not error_occurred and not full_response:
+            answer_placeholder.markdown(
+                '<div class="answer-box">😥 깊은 고민 끝에 상담사가 말문을 열지 못했습니다. 다른 성향의 상담사를 선택해 한 번 더 말을 걸어주세요.</div>',
+                unsafe_allow_html=True,
+            )
 
 
 # =========================================================
