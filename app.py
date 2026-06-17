@@ -181,6 +181,12 @@ def get_hidden_token() -> str | None:
     return os.environ.get("HF_TOKEN")
 
 
+# 앱 시작 시 토큰 보유 여부를 한 번 확인해둡니다.
+# (토큰 "값" 자체는 절대 화면에 출력하지 않고, 존재 여부만 확인합니다.)
+_HIDDEN_TOKEN = get_hidden_token()
+_TOKEN_IS_SET = bool(_HIDDEN_TOKEN)
+
+
 @st.cache_resource(show_spinner=False)
 def get_client(_token: str | None) -> InferenceClient:
     """
@@ -228,6 +234,22 @@ with st.sidebar:
         "연락해주세요.</p>",
         unsafe_allow_html=True,
     )
+
+    # ---- 운영자(개발자) 진단용 배지 ----
+    # 사용자에게 토큰을 입력받는 것이 아니라, 배포 환경(Streamlit Cloud의
+    # Secrets 등)에 HF_TOKEN이 정상적으로 등록되어 있는지 "존재 여부"만
+    # 확인해 보여줍니다. 토큰 값 자체는 절대 노출하지 않습니다.
+    with st.expander("🛠️ 서버 연결 상태 (개발자 확인용)"):
+        if _TOKEN_IS_SET:
+            st.success("HF_TOKEN이 정상적으로 인식되었습니다.")
+        else:
+            st.error(
+                "HF_TOKEN을 찾지 못했습니다.\n\n"
+                "Streamlit Cloud에 배포한 경우: 앱 관리 화면 → Settings → "
+                "Secrets 탭에 HF_TOKEN을 등록한 뒤 앱을 Reboot 해주세요.\n\n"
+                "로컬에서 실행한 경우: app.py와 같은 폴더의 .streamlit/secrets.toml "
+                "파일에 HF_TOKEN을 넣은 뒤, 터미널을 완전히 재시작해주세요."
+            )
 
 
 # =========================================================
@@ -280,8 +302,17 @@ def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
     huggingface_hub InferenceClient의 chat.completions.create를 사용해
     상담 답변을 스트리밍 방식으로 가져오는 제너레이터.
     """
-    token = get_hidden_token()
-    client = get_client(token)
+    if not _TOKEN_IS_SET:
+        # 모델 호출 자체를 시도하지 않고, 원인이 명확한 예외를 즉시 발생시킵니다.
+        # (이렇게 하면 huggingface_hub 내부의 모호한 ValueError 대신
+        #  우리가 의도한 안내 메시지를 화면에 보여줄 수 있습니다.)
+        raise RuntimeError(
+            "HF_TOKEN_NOT_CONFIGURED: 서버에 등록된 HF_TOKEN을 찾을 수 없습니다. "
+            "배포 환경(Streamlit Cloud Secrets 또는 로컬 .streamlit/secrets.toml)에 "
+            "HF_TOKEN이 설정되어 있는지 확인해주세요."
+        )
+
+    client = get_client(_HIDDEN_TOKEN)
 
     stream = client.chat.completions.create(
         model=model_id,
@@ -341,6 +372,23 @@ if submit_clicked:
 
                 if not first_chunk_received:
                     error_occurred = True
+
+        except RuntimeError as e:
+            error_occurred = True
+            if "HF_TOKEN_NOT_CONFIGURED" in str(e):
+                friendly = (
+                    "⚠️ 서버에 AI 모델 접속 토큰이 아직 설정되지 않았어요. "
+                    "운영자에게 문의해주세요. (사이드바의 '서버 연결 상태'에서도 "
+                    "확인할 수 있어요.)"
+                )
+            else:
+                friendly = "😥 알 수 없는 오류가 발생했어요. 잠시 후 다시 시도해주세요."
+            answer_placeholder.markdown(
+                f'<div class="answer-box">{friendly}</div>',
+                unsafe_allow_html=True,
+            )
+            with st.expander("자세한 오류 로그 보기 (개발자용)"):
+                st.code(f"{type(e).__name__}: {e}")
 
         except HfHubHTTPError as e:
             error_occurred = True
