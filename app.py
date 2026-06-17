@@ -1,18 +1,16 @@
 import streamlit as st
 import os
 
-# [핵심] 구글 클라우드 권한 및 API Key 체크를 강제로 우회하는 히든코드
-os.environ["OTEL_PYTHON_GOOGLE_GENAI_CERTIFICATE_LOOPBACK"] = "1"
-
-# 이제 정상적으로 최신 구글 API 라이브러리를 불러옵니다.
-try:
-    from google import genai
-    from google.genai import types
-except ImportError:
-    st.error("터미널에 'pip install google-genai'를 입력하여 라이브러리를 설치해주세요.")
-
 # 1. 웹 페이지 설정
 st.set_page_config(page_title="심리학 논문 기반 AI 상담소", page_icon="🧠", layout="centered")
+
+st.markdown("""
+    <style>
+    .main { background-color: #fcfcfc; }
+    h1 { color: #2E4053; font-weight: 700; }
+    .stTextArea textarea { font-size: 15px; }
+    </style>
+""", unsafe_allow_html=True)
 
 # 2. 사이드바 구성 (논문 선택만 남김)
 st.sidebar.title("🛠️ 상담 엔진 설정")
@@ -22,6 +20,12 @@ therapy_mode = st.sidebar.selectbox(
     "적용할 상담 이론을 선택하세요:",
     ["아론 벡의 인지행동치료 (CBT)", "칼 로저스의 인간중심치료 (PCT)"]
 )
+
+# =======================================================
+# ⚠️ [여기만 수정하세요] 아까 개인 계정으로 받은 구글 API 키를 넣어주세요!
+# 예: GEMINI_API_KEY = "AIzaSyAz..."
+GEMINI_API_KEY = "여기에_복사한_AIzaSy_구글_키를_그대로_붙여넣으세요"
+# =======================================================
 
 st.title("🧠 마음을 읽는 Gemini 심리 상담소")
 st.write("구글의 최신 Gemini 모델과 심리학 연구 논문을 결합한 에이전트입니다. 비용 걱정 없이 편안하게 이용하세요.")
@@ -51,13 +55,18 @@ submit_button = st.button("AI 심리 상담사에게 털어놓기 💬")
 if submit_button:
     if not user_input.strip():
         st.warning("⚠️ 고민 내용을 입력해주세요.")
+    elif GEMINI_API_KEY == "여기에_복사한_AIzaSy_구글_키를_그대로_붙여넣으세요":
+        st.error("⚠️ 코드 21번째 줄에 발급받은 Gemini API Key를 먼저 붙여넣어 주세요!")
     else:
         with st.spinner(f"💡 Gemini가 {therapy_mode} 논문을 기반으로 분석 중입니다..."):
             try:
-                # API Key 없이 로컬 환경 권한으로 Gemini 클라이언트를 즉시 초기화합니다.
-                client = genai.Client()
+                # 2026 구글 최신 규격 라이브러리 적용
+                from google import genai
+                from google.genai import types
                 
-                # 구글의 가장 빠르고 똑똑한 최신 프리티어 모델인 gemini-2.5-flash를 호출합니다.
+                # 입력된 키로 확실하게 클라이언트 생성
+                client = genai.Client(api_key=GEMINI_API_KEY)
+                
                 response = client.models.generate_content(
                     model='gemini-2.5-flash',
                     contents=user_input,
@@ -71,9 +80,7 @@ if submit_button:
                 st.subheader("✨ AI 심리 상담사의 마음 가이드")
                 with st.chat_message("assistant", avatar="🧠"):
                     st.write(response.text)
-                st.success("✅ 분석 및 상담이 완료되었습니다. (Gemini 엔진 정상 작동 중)")
+                st.success("✅ 분석 및 상담이 완료되었습니다.")
                 
             except Exception as e:
-                # 만약 이래도 안된다면 화면에 API Key를 직접 넣을 수 있는 창을 띄워주는 안전장치
-                st.error(f"❌ 로컬 다이렉트 연결 실패: {e}")
-                st.info("구글 클라우드 권한 문제일 수 있습니다. 이 경우 사이드바에 개발용 임시 키를 연동해야 합니다.")
+                st.error(f"❌ 에러가 발생했습니다: {e}")
