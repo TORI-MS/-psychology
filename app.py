@@ -6,8 +6,7 @@
 - huggingface_hub의 InferenceClient를 사용하여 무료 서버리스 인퍼런스(Inference Providers)로
   여러 LLM(Llama-3.1-8B, Qwen2.5-72B, Gemma-2-9B)을 선택해 호출합니다.
 - 인증은 앱 내부에 보관된 토큰(st.secrets 또는 환경변수)으로 '조용히' 처리되며,
-  사용자 화면에는 절대 노출되지 않습니다. (토큰이 없어도 앱이 죽지 않고
-  친절한 안내 메시지를 보여줍니다.)
+  사용자 화면에는 절대 노출되지 않습니다.
 """
 
 import os
@@ -31,80 +30,100 @@ st.set_page_config(
 
 
 # =========================================================
-# 1. 따뜻한 톤의 커스텀 CSS
+# 1. 아늑하고 차분한 커스텀 CSS (세이지 그린 & 밀크티 톤)
 # =========================================================
 def inject_custom_css() -> None:
     st.markdown(
         """
         <style>
-        /* 전체 배경 - 따뜻한 베이지/아이보리 톤 */
+        /* 전체 배경 - 눈이 편안한 따뜻한 밀크티/웜그레이 톤 */
         .stApp {
-            background-color: #FAF6F0;
+            background-color: #F7F4F0;
         }
 
         /* 메인 타이틀 영역 */
         .main-title {
             text-align: center;
-            padding: 1.2rem 0 0.4rem 0;
+            padding: 1.5rem 0 0.8rem 0;
         }
         .main-title h1 {
-            color: #6B4F3B;
-            font-weight: 800;
-            margin-bottom: 0.2rem;
+            color: #4A3E3D;
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            font-size: 2.2rem;
+            letter-spacing: -0.03em;
         }
         .main-title p {
-            color: #9C8268;
-            font-size: 0.95rem;
+            color: #8C7B75;
+            font-size: 1.05rem;
             margin-top: 0;
         }
 
-        /* 카드 느낌의 박스 */
+        /* 카드 느낌의 박스 (현재 설정 상태 등) */
         .soft-card {
-            background-color: #FFFDF9;
-            border: 1px solid #EFE4D8;
+            background-color: #FFFFFF;
+            border: 1px solid #EBE4DC;
             border-radius: 16px;
-            padding: 1.2rem 1.4rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 8px rgba(160, 130, 100, 0.08);
+            padding: 1.2rem 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 12px rgba(140, 123, 117, 0.04);
+            color: #5C4E4B;
+            font-size: 0.95rem;
+            line-height: 1.6;
         }
 
-        /* AI 답변 박스 */
+        /* AI 답변 박스 - 편안한 초록빛이 감도는 세이지 틴트 톤 */
         .answer-box {
-            background-color: #FFF8EF;
-            border: 1px solid #F0DCC0;
-            border-radius: 18px;
-            padding: 1.5rem 1.6rem;
-            line-height: 1.75;
-            color: #4A3B2C;
-            font-size: 1.02rem;
+            background-color: #F2F5F3;
+            border: 1px solid #E1E6E2;
+            border-radius: 20px;
+            padding: 1.6rem 1.8rem;
+            line-height: 1.8;
+            color: #2F3E36;
+            font-size: 1.05rem;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.02);
         }
 
-        /* 버튼 스타일 */
+        /* 버튼 스타일 - 마음의 안정을 주는 다운된 세이지 그린 */
         div.stButton > button {
-            background-color: #C8967A;
+            background-color: #72847A;
             color: #FFFFFF;
             border: none;
-            border-radius: 12px;
-            padding: 0.6rem 1.2rem;
-            font-weight: 700;
+            border-radius: 14px;
+            padding: 0.7rem 1.2rem;
+            font-weight: 600;
             font-size: 1.05rem;
             width: 100%;
-            transition: background-color 0.2s ease-in-out;
+            transition: all 0.25s ease-in-out;
+            box-shadow: 0 2px 6px rgba(114, 132, 122, 0.15);
         }
         div.stButton > button:hover {
-            background-color: #B17E5E;
+            background-color: #5F7066;
             color: #FFFFFF;
+            box-shadow: 0 4px 10px rgba(114, 132, 122, 0.25);
+        }
+
+        /* 초기화 버튼 (secondary 형태) */
+        div.stButton > button[data-testid="baseButton-secondary"] {
+            background-color: transparent;
+            color: #8C7B75;
+            border: 1px solid #DCD1C4;
+        }
+        div.stButton > button[data-testid="baseButton-secondary"]:hover {
+            background-color: #EBE4DC;
+            color: #5C4E4B;
         }
 
         /* 사이드바 */
         section[data-testid="stSidebar"] {
-            background-color: #F3EAE0;
+            background-color: #EDE6DE;
         }
 
         /* 안내 캡션 */
         .small-note {
-            color: #A08D7C;
-            font-size: 0.82rem;
+            color: #9C8E87;
+            font-size: 0.85rem;
+            line-height: 1.5;
         }
         </style>
         """,
@@ -116,31 +135,31 @@ inject_custom_css()
 
 
 # =========================================================
-# 2. 모델 / 상담 이론 메타데이터 정의
+# 2. 모델 / 상담 이론 메타데이터 정의 (UX 텍스트 비AI화)
 # =========================================================
 MODEL_OPTIONS = {
-    "Llama-3.1-8B · 이성적·논리적 분석 스타일": {
+    "깊고 명쾌한 대화 · 이성적 분석가": {
         "id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
-        "desc": "사실과 논리를 차근차근 짚어가며 분석적으로 설명해주는 스타일이에요.",
+        "desc": "복잡한 생각의 타래를 차근차근 짚어가며, 현명한 관점을 찾도록 이성적으로 돕습니다.",
     },
-    "Qwen-2.5-72B · 상황 파악이 빠른 다재다능 스타일": {
+    "넓고 유연한 대화 · 공감형 조언자": {
         "id": "Qwen/Qwen2.5-72B-Instruct",
-        "desc": "맥락을 빠르게 파악하고 다양한 관점에서 유연하게 답해주는 스타일이에요.",
+        "desc": "마음의 전체적인 맥락을 영리하게 파악하고, 여러 갈래의 따뜻한 시선을 열어줍니다.",
     },
-    "Gemma-2-9B · 부드럽고 친근한 대화 스타일": {
+    "다정하고 포근한 대화 · 이야기 친구": {
         "id": "google/gemma-2-9b-it",
-        "desc": "다정하고 친근한 말투로 부담 없이 대화하듯 답해주는 스타일이에요.",
+        "desc": "가까운 친구처럼 부드러운 말투로 곁에 머물며, 부담 없이 이야기를 들어줍니다.",
     },
 }
 
 THEORY_OPTIONS = {
-    "옵션 A · 아론 벡의 인지행동치료 (CBT)": "CBT",
-    "옵션 B · 칼 로저스의 인간중심치료 (PCT)": "PCT",
+    "생각의 틀을 함께 짚어보는 대화 (인지행동치료)": "CBT",
+    "있는 그대로 마음을 비춰주는 대화 (인간중심치료)": "PCT",
 }
 
 THEORY_DESCRIPTIONS = {
-    "CBT": "생각의 왜곡(인지왜곡)을 함께 짚어보고, 더 균형 잡힌 시각을 찾아가도록 돕는 접근이에요.",
-    "PCT": "옳고 그름을 판단하지 않고, 있는 그대로의 감정을 존중하며 곁에서 함께 들어주는 접근이에요.",
+    "CBT": "나도 모르게 스스로를 괴롭히던 생각의 오해나 치우침을 살펴보고, 마음의 균형을 찾도록 이끕니다.",
+    "PCT": "어떤 판단도 하지 않고, 당신이 느끼는 서러움이나 아픔을 온전히 존중하며 곁을 지킵니다.",
 }
 
 
@@ -148,29 +167,25 @@ def build_system_prompt(theory_key: str) -> str:
     """선택된 상담 이론에 따라 시스템 프롬프트를 생성합니다."""
     if theory_key == "CBT":
         return (
-            "너는 아론 벡의 인지행동치료(CBT) 전문 심리 상담사야. "
-            "내담자의 사연에서 인지적 왜곡(흑백논리, 파국화, 과잉일반화 등)을 포착하고, "
-            "1단계 [공감과 수용], 2단계 [심리학적 분석], 3단계 [소크라테스식 질문] "
-            "순서로 답변해줘. 각 단계는 명확한 제목과 함께 한국어로 따뜻하지만 "
-            "전문적인 어조로 작성해줘. 의학적 진단이나 약물 처방은 하지 말고, "
-            "필요한 경우 전문가의 직접적인 상담을 권유해줘."
+            "너는 따뜻하고 깊이 있는 심리 상담사야. 아론 벡의 인지행동치료(CBT) 관점에서 대화해줘. "
+            "내담자의 사연에서 스스로를 힘들게 만드는 생각의 함정(흑백논리, 파국화, 과잉일반화 등)을 세심히 살피되, "
+            "기계적인 진단처럼 말하지 말고 대화하듯 풀어줘. "
+            "1단계 [마음 알아채기 및 공감], 2단계 [생각의 타래 짚어보기], 3단계 [작은 변화를 위한 조심스러운 제안] "
+            "순서로 답변해줘. 각 단계는 명확한 구절로 나누어 한국어로 다정하면서도 신뢰감 있게 작성해줘. "
+            "의학적 진단은 피하고, 깊은 치유가 필요할 땐 조율된 어조로 전문가 상담을 권해줘."
         )
     else:  # PCT
         return (
-            "너는 칼 로저스의 인간중심치료 전문 심리 상담사야. "
-            "무조건적 존중과 공감적 경청이 핵심이야. 절대 섣부른 조언이나 "
-            "해결책을 지시하지 말고, 1단계 [감정 반영 및 경청], 2단계 [존중과 격려], "
-            "3단계 [내면 탐색 유도] 순서로 답변해줘. 각 단계는 명확한 제목과 함께 "
-            "한국어로 부드럽고 따뜻한 어조로 작성해줘. 평가하거나 판단하는 표현은 "
-            "절대 사용하지 말고, 필요한 경우 전문가의 직접적인 상담을 권유해줘."
+            "너는 칼 로저스의 인간중심치료를 바탕으로 소통하는 따뜻한 상담사야. "
+            "무조건적인 존중과 깊은 경청이 핵심이야. 섣부른 해결책이나 충고는 내려놓고, 오직 내담자의 마음에만 집중해줘. "
+            "1단계 [온전한 경청과 마음 비추기], 2단계 [따스한 격려와 지지], 3단계 [내면의 힘 깨우기] "
+            "순서로 답변해줘. 각 단계는 부드럽고 다정한 한국어로 작성하고, 결코 내담자를 평가하거나 판단하지 말아줘. "
+            "더 깊은 위로와 치유가 필요할 땐 전문가의 손길을 조심스럽게 권유해줘."
         )
 
 
 # =========================================================
-# 3. 인증 토큰 처리 (사용자에게는 절대 노출되지 않음)
-#    - st.secrets["HF_TOKEN"] 또는 환경변수 HF_TOKEN을 사용합니다.
-#    - 토큰이 없어도 InferenceClient는 생성되며, 호출 시점에만
-#      필요한 예외처리를 통해 친절한 안내 메시지를 보여줍니다.
+# 3. 인증 토큰 처리
 # =========================================================
 def get_hidden_token() -> str | None:
     try:
@@ -181,16 +196,9 @@ def get_hidden_token() -> str | None:
     return os.environ.get("HF_TOKEN")
 
 
-# 앱 시작 시 토큰 보유 여부를 한 번 확인해둡니다.
-# (토큰 "값" 자체는 절대 화면에 출력하지 않고, 존재 여부만 확인합니다.)
 _HIDDEN_TOKEN = get_hidden_token()
 _TOKEN_IS_SET = bool(_HIDDEN_TOKEN)
 
-
-# 모델별로 실제 호스팅 가능성이 높은 Provider 후보들입니다.
-# "auto"를 먼저 시도한 뒤, 실패하면 이 후보들을 순서대로 재시도합니다.
-# (계정마다 활성화된 Provider가 다를 수 있어, 하나로 고정하지 않고
-#  여러 후보를 순차적으로 시도하는 방식이 가장 안정적입니다.)
 PROVIDER_FALLBACKS = {
     "meta-llama/Meta-Llama-3.1-8B-Instruct": ["featherless-ai", "together", "novita", "fireworks-ai"],
     "Qwen/Qwen2.5-72B-Instruct": ["novita", "together", "fireworks-ai", "featherless-ai", "nebius"],
@@ -200,72 +208,54 @@ PROVIDER_FALLBACKS = {
 
 @st.cache_resource(show_spinner=False)
 def get_client(_token: str | None, provider: str = "auto") -> InferenceClient:
-    """
-    InferenceClient를 생성합니다.
-    provider='auto' 로 두면 huggingface_hub가 해당 모델을 서빙하는
-    가용 Provider 중 하나를 자동으로 선택합니다. 다만 계정에 해당
-    Provider가 활성화되어 있지 않으면 'model_not_supported' 오류가
-    날 수 있어, 호출부에서 여러 provider를 순차적으로 재시도합니다.
-    """
     return InferenceClient(provider=provider, token=_token)
 
 
 # =========================================================
-# 4. 사이드바 UI
+# 4. 사이드바 UI (UX 텍스트 전면 개편)
 # =========================================================
 with st.sidebar:
-    st.markdown("### ⚙️ 상담 설정")
-    st.caption("아래 옵션을 선택한 뒤, 메인 화면에서 고민을 적어주세요.")
+    st.markdown("### ⚙️ 상담실 문 열기")
+    st.caption("편안한 대화를 위해 마음에 맞는 방식을 골라주세요.")
 
-    st.markdown("#### 🤖 AI 상담사 엔진 선택")
+    st.markdown("#### ✉️ 어떤 결의 상담사와 이야기하고 싶나요?")
     selected_model_label = st.selectbox(
-        "상담을 진행할 AI 모델을 골라주세요.",
+        "목소리 톤 고르기",
         options=list(MODEL_OPTIONS.keys()),
         index=2,
+        label_visibility="collapsed"
     )
     selected_model_id = MODEL_OPTIONS[selected_model_label]["id"]
-    st.caption(f"💡 {MODEL_OPTIONS[selected_model_label]['desc']}")
+    st.caption(f"✨ {MODEL_OPTIONS[selected_model_label]['desc']}")
 
     st.markdown("---")
 
-    st.markdown("#### 📚 상담 이론 선택")
+    st.markdown("#### 📚 어떤 대화 방식으로 마음을 풀고 싶나요?")
     selected_theory_label = st.selectbox(
-        "어떤 심리상담 이론으로 상담받고 싶으신가요?",
+        "상담 접근방식 고르기",
         options=list(THEORY_OPTIONS.keys()),
         index=0,
+        label_visibility="collapsed"
     )
     selected_theory_key = THEORY_OPTIONS[selected_theory_label]
-    st.caption(f"💡 {THEORY_DESCRIPTIONS[selected_theory_key]}")
+    st.caption(f"✨ {THEORY_DESCRIPTIONS[selected_theory_key]}")
 
     st.markdown("---")
     st.markdown(
-        '<p class="small-note">🔒 별도의 회원가입이나 API Key 입력이 필요 없습니다.<br>'
-        "본 서비스는 전문적인 의료/심리 치료를 대체하지 않으며, "
-        "긴급한 위기 상황에는 반드시 전문기관(자살예방상담전화 1393 등)에 "
-        "연락해주세요.</p>",
+        '<p class="small-note">🔒 이곳에서의 대화는 어디에도 남지 않으니 안심하세요.<br>'
+        "본 공간은 마음을 돌보는 보조 도구입니다. 극심한 마음의 고통이나 "
+        "위기 상황에는 꼭 전문기관(자살예방상담전화 1393 등)의 따뜻한 도움을 받아보시기를 권합니다.</p>",
         unsafe_allow_html=True,
     )
 
-    # ---- 운영자(개발자) 진단용 배지 ----
-    # 사용자에게 토큰을 입력받는 것이 아니라, 배포 환경(Streamlit Cloud의
-    # Secrets 등)에 HF_TOKEN이 정상적으로 등록되어 있는지 "존재 여부"만
-    # 확인해 보여줍니다. 토큰 값 자체는 절대 노출하지 않습니다.
-    with st.expander("🛠️ 서버 연결 상태 (개발자 확인용)"):
+    with st.expander("🛠️ 시스템 연결 확인 (운영자 확인용)"):
         if _TOKEN_IS_SET:
-            st.success("HF_TOKEN이 정상적으로 인식되었습니다.")
-            st.caption(
-                "그래도 'model_not_supported' 오류가 난다면, "
-                "huggingface.co/settings/inference-providers 페이지에서 "
-                "Featherless AI / Novita / Together 등 Provider가 "
-                "활성화되어 있는지 확인해주세요."
-            )
+            st.success("상담실 연결 통로가 정상적으로 열려 있습니다.")
         else:
             st.error(
-                "HF_TOKEN을 찾지 못했습니다.\n\n"
-                "Streamlit Cloud에 배포한 경우: 앱 관리 화면 → Settings → "
-                "Secrets 탭에 HF_TOKEN을 등록한 뒤 앱을 Reboot 해주세요.\n\n"
-                "로컬에서 실행한 경우: app.py와 같은 폴더의 .streamlit/secrets.toml "
-                "파일에 HF_TOKEN을 넣은 뒤, 터미널을 완전히 재시작해주세요."
+                "연결 토큰(HF_TOKEN)을 찾지 못했습니다.\n\n"
+                "Streamlit Cloud 배포 시: Settings -> Secrets에 HF_TOKEN을 등록해주세요.\n"
+                "로컬 실행 시: .streamlit/secrets.toml 파일에 토큰을 기입해주세요."
             )
 
 
@@ -276,62 +266,48 @@ st.markdown(
     """
     <div class="main-title">
         <h1>🌿 마음챙김 AI 상담실</h1>
-        <p>가입도, 인증도 필요 없이 — 지금 떠오르는 고민을 편하게 적어보세요.</p>
+        <p>복잡한 가입이나 절차 없이 — 오롯이 당신만을 위한 대화 공간입니다.</p>
     </div>
     """,
     unsafe_allow_html=True,
 )
 
+# 간결하고 정돈된 카드 형태의 요약문
 st.markdown(
     f"""
     <div class="soft-card">
-        <b>현재 선택된 상담사</b> · {selected_model_label.split(' · ')[0]}<br>
-        <b>현재 상담 접근법</b> · {selected_theory_label.split(' · ')[1]}
+        • <b>상담사 성향</b> : {selected_model_label.split(' · ')[0]}<br>
+        • <b>대화의 흐름</b> : {selected_theory_label.split(' (')[0]}
     </div>
     """,
     unsafe_allow_html=True,
 )
 
 user_input = st.text_area(
-    label="지금 어떤 마음이신가요? 편하게 적어주세요. ✍️",
+    label="지금 마음 한구석을 무겁게 만드는 고민이 있다면, 편하게 털어놓아 보세요. ✍️",
     placeholder=(
-        "예) 요즘 회사에서 작은 실수를 했는데, 다들 나를 무능하다고 생각할 것 같아서 "
-        "잠도 잘 못 자고 계속 그 생각만 나요..."
+        "예) 요즘 작은 실수에도 온종일 마음이 쓰여요. 주변 사람들이 나를 안 좋게 "
+        "평가할 것만 같아 불안하고, 밤이 되면 자꾸 서글퍼집니다..."
     ),
     height=220,
 )
 
 col_btn, col_clear = st.columns([3, 1])
 with col_btn:
-    submit_clicked = st.button("AI 심리 상담사에게 털어놓기 💬", use_container_width=True)
+    submit_clicked = st.button("내 마음 전하기 💬", use_container_width=True)
 with col_clear:
-    clear_clicked = st.button("초기화", use_container_width=True)
+    clear_clicked = st.button("처음부터 다시 쓰기", use_container_width=True)
 
 if clear_clicked:
     st.rerun()
 
 
 # =========================================================
-# 6. 모델 호출 및 결과 출력
+# 6. 모델 호출 및 결과 출력 (UX 텍스트 비AI화)
 # =========================================================
 def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
-    """
-    huggingface_hub InferenceClient의 chat.completions.create를 사용해
-    상담 답변을 스트리밍 방식으로 가져오는 제너레이터.
-
-    먼저 provider='auto'로 시도하고, 'model_not_supported'(해당 계정에
-    활성화된 Provider가 없는 경우) 오류가 나면 PROVIDER_FALLBACKS에 정의된
-    후보 Provider들을 순서대로 재시도합니다.
-    """
     if not _TOKEN_IS_SET:
-        # 모델 호출 자체를 시도하지 않고, 원인이 명확한 예외를 즉시 발생시킵니다.
-        # (이렇게 하면 huggingface_hub 내부의 모호한 ValueError 대신
-        #  우리가 의도한 안내 메시지를 화면에 보여줄 수 있습니다.)
-        raise RuntimeError(
-            "HF_TOKEN_NOT_CONFIGURED: 서버에 등록된 HF_TOKEN을 찾을 수 없습니다. "
-            "배포 환경(Streamlit Cloud Secrets 또는 로컬 .streamlit/secrets.toml)에 "
-            "HF_TOKEN이 설정되어 있는지 확인해주세요."
-        )
+        raise RuntimeError("HF_TOKEN_NOT_CONFIGURED")
 
     candidate_providers = ["auto"] + PROVIDER_FALLBACKS.get(model_id, [])
     last_error: Exception | None = None
@@ -362,147 +338,105 @@ def call_counseling_model(model_id: str, system_prompt: str, user_text: str):
                     yield delta
 
             if got_any_chunk:
-                return  # 이 provider로 성공했으므로 함수 종료
+                return
 
         except BadRequestError as e:
-            # 'model_not_supported' 등 잘못된 요청 - 다음 provider 후보로 재시도
             last_error = e
             continue
         except HfHubHTTPError as e:
             status = getattr(getattr(e, "response", None), "status_code", None)
-            # 인증(401/403) 문제는 provider를 바꿔도 해결되지 않으므로 즉시 중단합니다.
             if status in (401, 403):
                 raise
-            # 그 외 HTTP 오류(429, 503 등)도 다음 provider 후보로 재시도해봅니다.
             last_error = e
             continue
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:
             last_error = e
             continue
 
-    # 모든 provider 후보가 실패한 경우
     if last_error is not None:
-        raise RuntimeError(
-            "PROVIDER_NOT_AVAILABLE: 이 모델을 서빙할 수 있는 Provider를 "
-            f"현재 계정에서 찾지 못했어요. (시도한 옵션: {', '.join(candidate_providers)}) "
-            "huggingface.co/settings/inference-providers 에서 Provider를 "
-            f"활성화해주세요. 원본 오류: {last_error}"
-        )
+        raise RuntimeError("PROVIDER_NOT_AVAILABLE")
 
 
 if submit_clicked:
     cleaned_text = (user_input or "").strip()
 
     if not cleaned_text:
-        st.warning("⚠️ 먼저 고민을 적어주셔야 상담사가 답변을 드릴 수 있어요.")
+        st.warning("⚠️ 한두 구절이라도 마음을 적어주셔야 조심스레 답변을 건넬 수 있어요.")
     else:
         system_prompt = build_system_prompt(selected_theory_key)
 
-        st.markdown("#### 💌 AI 상담사의 답변")
+        st.markdown("#### 💌 당신을 향한 따뜻한 답신")
         answer_placeholder = st.empty()
         answer_placeholder.markdown(
-            '<div class="answer-box">상담사가 답변을 준비하고 있어요...</div>',
-            unsafe_allow_html=True,
-        )
+        '<div class="answer-box">이야기를 조용히 읽으며 생각을 정리하고 있어요...</div>',
+        unsafe_allow_html=True,
+    )
 
         full_response = ""
         error_occurred = False
 
         try:
-            with st.spinner(f"🌿 '{selected_model_label.split(' · ')[0]}' 상담사가 마음을 읽고 있어요..."):
-                # 스트리밍 시작 전, 첫 토큰이 오기 전까지는 spinner가 보여지고
-                # 첫 토큰부터는 실시간으로 텍스트를 갱신합니다.
-                first_chunk_received = False
-                for delta in call_counseling_model(
-                    model_id=selected_model_id,
-                    system_prompt=system_prompt,
-                    user_text=cleaned_text,
-                ):
-                    full_response += delta
-                    first_chunk_received = True
-                    answer_placeholder.markdown(
-                        f'<div class="answer-box">{full_response}▌</div>',
-                        unsafe_allow_html=True,
-                    )
+        # 스피너 메시지도 다정하게 변경
+        with st.spinner("마음을 가만히 들여다보는 중입니다..."):
+            first_chunk_received = False
+            for delta in call_counseling_model(
+                model_id=selected_model_id,
+                system_prompt=system_prompt,
+                user_text=cleaned_text,
+            ):
+                full_response += delta
+                first_chunk_received = True
+                answer_placeholder.markdown(
+                    f'<div class="answer-box">{full_response}▌</div>',
+                    unsafe_allow_html=True,
+                )
 
-                if not first_chunk_received:
-                    error_occurred = True
+            if not first_chunk_received:
+                error_occurred = True
 
         except RuntimeError as e:
-            error_occurred = True
-            if "HF_TOKEN_NOT_CONFIGURED" in str(e):
-                friendly = (
-                    "⚠️ 서버에 AI 모델 접속 토큰이 아직 설정되지 않았어요. "
-                    "운영자에게 문의해주세요. (사이드바의 '서버 연결 상태'에서도 "
-                    "확인할 수 있어요.)"
-                )
-            elif "PROVIDER_NOT_AVAILABLE" in str(e):
-                friendly = (
-                    f"🛠️ '{selected_model_label.split(' · ')[0]}' 모델을 현재 "
-                    "계정에서 호출할 수 있는 서버 경로를 찾지 못했어요. "
-                    "다른 AI 모델로 변경해 다시 시도해보시거나, 운영자에게 "
-                    "huggingface.co의 Inference Providers 활성화 설정을 "
-                    "확인해달라고 요청해주세요."
-                )
-            else:
-                friendly = "😥 알 수 없는 오류가 발생했어요. 잠시 후 다시 시도해주세요."
-            answer_placeholder.markdown(
-                f'<div class="answer-box">{friendly}</div>',
-                unsafe_allow_html=True,
-            )
-            with st.expander("자세한 오류 로그 보기 (개발자용)"):
-                st.code(f"{type(e).__name__}: {e}")
+        error_occurred = True
+        if "HF_TOKEN_NOT_CONFIGURED" in str(e):
+            friendly = "⚠️ 마음을 전달하는 연결 통로에 설정이 누락되었습니다. 상담실 관리자에게 확인을 부탁해주세요."
+        elif "PROVIDER_NOT_AVAILABLE" in str(e):
+            friendly = "🛠️ 선택하신 대화 통로에 잠시 정비가 필요합니다. 왼쪽 메뉴에서 다른 상담사를 선택해 이야기를 다시 건네어 보세요."
+        else:
+            friendly = "😥 통신에 작은 문제가 생겨 마음이 온전히 닿지 못했습니다. 잠시 후 편안할 때 다시 한 번 적어주세요."
+        
+        answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
 
-        except HfHubHTTPError as e:
-            error_occurred = True
-            status = getattr(getattr(e, "response", None), "status_code", None)
-            if status in (401, 403):
-                friendly = (
-                    "🔒 현재 무료 인퍼런스 서버의 인증/권한 문제로 답변을 받아오지 못했어요. "
-                    "잠시 후 다시 시도해주시거나, 다른 AI 모델로 변경해 다시 시도해보세요."
-                )
-            elif status == 429:
-                friendly = (
-                    "⏳ 지금 무료 서버에 요청이 많아 잠시 대기가 필요해요. "
-                    "30초~1분 후 다시 시도해주세요."
-                )
-            elif status == 503:
-                friendly = (
-                    "🛠️ 선택하신 AI 모델이 현재 워밍업(로딩) 중이에요. "
-                    "잠시(약 20~30초) 후 다시 시도해주시면 정상적으로 응답이 와요."
-                )
-            else:
-                friendly = "😥 모델 서버 호출 중 문제가 발생했어요. 잠시 후 다시 시도해주세요."
+    except HfHubHTTPError as e:
+        error_occurred = True
+        status = getattr(getattr(e, "response", None), "status_code", None)
+        if status in (401, 403):
+            friendly = "🔒 대화 공간의 권한에 작은 엉킴이 생겼습니다. 잠시 후 다시 시도해보거나 다른 상담사 스타일을 골라보세요."
+        elif status == 429:
+            friendly = "⏳ 지금 이 공간을 찾는 분들이 많아 상담실이 조금 붐비고 있습니다. 약 1분 정도 숨을 고른 뒤 다시 이야기를 건네어 주세요."
+        elif status == 503:
+            friendly = "🛠️ 상담사가 대화를 맞이할 준비(서버 로딩)를 하고 있습니다. 20~30초만 가만히 기다려 주신 뒤 다시 대화를 걸어주세요."
+        else:
+            friendly = "😥 이야기 통로에 예상치 못한 안개가 꼈습니다. 잠시 후 맑아지면 다시 찾아와주세요."
 
-            answer_placeholder.markdown(
-                f'<div class="answer-box">{friendly}</div>',
-                unsafe_allow_html=True,
-            )
-            with st.expander("자세한 오류 로그 보기 (개발자용)"):
-                st.code(f"{type(e).__name__}: {e}")
+        answer_placeholder.markdown(f'<div class="answer-box">{friendly}</div>', unsafe_allow_html=True)
 
-        except Exception as e:
-            error_occurred = True
-            answer_placeholder.markdown(
-                '<div class="answer-box">😥 답변을 가져오는 중 예상치 못한 문제가 발생했어요. '
-                "잠시 후 다시 시도하거나 다른 AI 모델을 선택해보세요.</div>",
-                unsafe_allow_html=True,
-            )
-            with st.expander("자세한 오류 로그 보기 (개발자용)"):
-                st.code(traceback.format_exc())
+    except Exception as e:
+        error_occurred = True
+        answer_placeholder.markdown(
+            '<div class="answer-box">😥 예기치 못한 작은 오류로 대화가 끊겼습니다. 마음에 안정을 취한 뒤 다른 상담사를 선택해 말을 건네어 보세요.</div>',
+            unsafe_allow_html=True,
+        )
 
-        if not error_occurred and full_response:
-            answer_placeholder.markdown(
-                f'<div class="answer-box">{full_response}</div>',
-                unsafe_allow_html=True,
-            )
-            st.success("상담사가 답변을 마쳤어요. 천천히 읽어보세요. 🌱")
-        elif not error_occurred and not full_response:
-            answer_placeholder.markdown(
-                '<div class="answer-box">😥 모델이 빈 답변을 반환했어요. '
-                "다시 시도하거나 다른 모델로 바꿔보세요.</div>",
-                unsafe_allow_html=True,
-            )
+    if not error_occurred and full_response:
+        answer_placeholder.markdown(
+            f'<div class="answer-box">{full_response}</div>',
+            unsafe_allow_html=True,
+        )
+        st.success("상담사의 진심 어린 답신이 도착했습니다. 천천히 가슴으로 읽어보세요. 🌱")
+    elif not error_occurred and not full_response:
+        answer_placeholder.markdown(
+            '<div class="answer-box">😥 깊은 고민 끝에 상담사가 말문을 열지 못했습니다. 다른 성향의 상담사를 선택해 한 번 더 말을 걸어주세요.</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # =========================================================
@@ -510,7 +444,7 @@ if submit_clicked:
 # =========================================================
 st.markdown("---")
 st.caption(
-    "🌿 본 서비스는 AI 기반 자기이해 보조 도구이며, 전문 심리상담이나 "
-    "정신건강 의학적 치료를 대체하지 않습니다. 위기 상황에는 자살예방상담전화 "
-    "(국내, 1393) 등 전문기관에 즉시 연락해주세요."
+    "🌿 본 대화실은 AI 기반 자기이해 보조 도구이며, 전문 심리상담이나 "
+    "정신건강 의학적 치료를 대체하지 못합니다. 마음의 짐이 너무 무거워 위태로울 때는 "
+    "자살예방상담전화 (국내, 1393) 등 따뜻한 전문가의 손을 꼭 잡아주세요."
 )
